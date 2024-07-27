@@ -1,0 +1,10 @@
+.idea/
+*.log
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.synctex.gz
+*.out
+
+.DS_Store
