@@ -70,7 +70,44 @@
 
 \begin{abstract}
 	TODO
+	
+	Guaranteed representational power + incorporate proper graph inductive bias.
 \end{abstract}
+
+\textcolor{blue}{
+	\textbf{Motivation:}
+	Xxx
+}
+
+\textcolor{blue}{
+\textbf{Outline:}
+\begin{itemize}
+	\item
+	A new framework
+	\begin{itemize}
+		\item
+		Unifying existings with this new framework;
+	\end{itemize}
+	\item
+	Representational power analysis
+	\begin{itemize}
+		\item
+		The upper bound of $\gL$;
+		\item
+		The Representational Power of Polynomial Filters;
+		\item
+		The Representational Power of Truncate Filters;
+		\item
+		The complementary between polynomial filter and truncate filter
+		\begin{itemize}
+			\item
+			The trade-off between representational power and complexity.
+		\end{itemize}
+	\end{itemize}
+	\item
+	Designing powerful and computational efficient $\rmM$;
+\end{itemize}
+}
 
 \section{Introduction}
 
@@ -78,32 +115,30 @@
 
 \section{Graph Learning Module Unification}
 
-A graph learning module includes the row-wise transformation and column-wise transformation over node features.
-
+Given a graph $G$ and node features $X\in\sR^{n\times d}$, the operations in various graph learning modules can be unified into row-wise transformation $f_W^{\mathrm{row}}$ and column-wise transformation $f_{\rmM}^{\mathrm{col}}$ on $X$,
 \begin{equation}
 	\label{equ:uni_grl}
 	\begin{aligned}
-		Z&=f_{\rmM}^{\mathrm{col}}(f_W^{\mathrm{row}}(X))\\
+		Z&=f_{\rmM}^{\mathrm{col}}\circ f_W^{\mathrm{row}}(X).
 %		&=\sigma(\rmM f_W(X))\\
-		&=\sigma(\rmM\sigma(XW)),
+%		&=\sigma(\rmM\sigma(XW)).
 	\end{aligned}
 \end{equation}
-where $X\in\sR^{n\times d}$, $W\in\sR^{d\times d^{\prime}}$ and $\rmM\in\sR^{n\times n}$.
-
-%$f_W$ is a single- or multi-layer percetron applied on each node feature vector, i.e. $f_W(Z)=\sigma(ZW)$ or $f_W(Z)=\sigma(\sigma(ZW)W)$.
-
-\textbf{Empirical understanding.}
-$f_W^{\mathrm{row}}$ processes node feature information.
-$f_{\rmM}^{\mathrm{col}}$ processes graph topology information.
-In some literatures, $f_W^{\mathrm{row}}$ and $f_{\rmM}^{\mathrm{col}}$ refer to \emph{predict} and \emph{propagate} operations respectively~\citep{klicpera_predict_2019}.
-Different $\rmM$ result in different propagation scheme.
-
-\textbf{Architecture specification.}
-In the multi-layer setting, general applies multi-layer $f_W^{\mathrm{row}}$ and $f_{\rmM}^{\mathrm{col}}$ in an alternate manner, i.e. $Z^{(k)}=f_{\rmM}^{\mathrm{col}(k)}(f_W^{\mathrm{row}(k)}(Z^{(k-1)}))$.
+Here, regarding to specific graph learning modesl, $f_W^{\mathrm{row}}(\square)=\sigma(\square W)$ can be a single- or multi-layer percetron applied on each row of $X$ by right multiplying $W$, where $W\in\sR^{d\times d^{\prime}}$ is the learnable weights.
+$f_{\rmM}^{\mathrm{col}}(\square)=\sigma(\rmM\square)$ is applied on each column of $X$ by left multiplying $\rmM$, where $\rmM\in\sR^{n\times n}$ is the matrix representation of $G$.
+$\rmM$ can also be learnable.
+Most importantly, $\rmM$ incorporates \emph{graph inductive biases} to leverage topology information in learning node representations.
+For example, in GCN, $\rmM=\hat A$.
+In GAT, to utilize topology information, only entries corresponding to edges are learnable.
+The most fundamental difference of various graph learning modules is their ways to incorporates graph inductive biases into $\rmM$.
+%\textbf{Empirical understanding.}
+%$f_W^{\mathrm{row}}$ processes node feature information.
+%$f_{\rmM}^{\mathrm{col}}$ processes graph topology information.
+In some literatures, $f_W^{\mathrm{row}}$ and $f_{\rmM}^{\mathrm{col}}$ refer to \emph{predict} and \emph{propagate} operations respectively~\citep{klicpera_predict_2019}, and different $\rmM$ result in different propagation scheme.~\footnote{
+In the multi-layer settings, they apply multi-layer $f_W^{\mathrm{row}}$ and $f_{\rmM}^{\mathrm{col}}$ in an alternate manner, i.e. $Z^{(k)}=f_{\rmM}^{\mathrm{col}(k)}(f_W^{\mathrm{row}(k)}(Z^{(k-1)}))$.
 There are also GNNs applying decouple architectures where node features are prcessed by the multi-layer $f_W^{\mathrm{row}}$ and $f_{\rmM}^{\mathrm{col}}$ individually~\citep{klicpera_predict_2019,pmlr-v97-wu19e,klicpera_predict_2019,liu2020towards,zhu2020simple,zhang2021litegem}.
-
-\textbf{The role of $\sigma$.}
-$\sigma$ in $f_{\rmM}^{\mathrm{col}}$ and $f_W^{\mathrm{row}}$ are used to introduce nonlinearity to the transformation.
+%\textbf{The role of $\sigma$.}
+$\sigma$ in $f_{\rmM}^{\mathrm{col}}$ and $f_W^{\mathrm{row}}$ share the same role that introduces nonlinearity to the transformation.
 %\begin{equation}
 %	\begin{aligned}
 %		Z&=\rmM\dots\left(\rmM f_W(X)\right)\\
@@ -111,14 +146,13 @@ $\sigma$ in $f_{\rmM}^{\mathrm{col}}$ and $f_W^{\mathrm{row}}$ are used to intro
 %	\end{aligned}
 %\end{equation}
 Some works study linear GNNs which correspond to removing $\sigma$ in Equ.~\ref{equ:uni_grl}~\citep{pmlr-v97-wu19e,xu2021optimization,JacobiConv,liu2021eignn,liu2022mgnni}.
+}
 
-\textbf{Difference between $\rmM$ and $W$.}
-Both $\rmM$ and $W$ are learnable.
-But $\rmM$ further incorporates graph inductive biases to leverage topology information.
-For example, in GAT, to leverage topology information, only entries corresponding to edges are learnable.
-Compared with the fully learnable weight matrix $W$, $\rmM$ involves interpretations known as propagation scheme introduced by graph topology.
-
-The most fundamental difference of various graph learning modules is their ways to incorporates graph inductive biases into $\rmM$.
+%\textbf{Difference between $\rmM$ and $W$.}
+%Both $\rmM$ and $W$ are learnable.
+%But $\rmM$ further incorporates graph inductive biases to leverage topology information.
+%For example, in GAT, to leverage topology information, only entries corresponding to edges are learnable.
+%Compared with the fully learnable weight matrix $W$, $\rmM$ involves interpretations known as propagation scheme introduced by graph topology.
 
 \subsection{Strategies of incorporating graph inductive biases into $\rmM$}
 
@@ -128,7 +162,7 @@ Encoding topology information into $\rmM$ with various graph inductive biases.
 \textbf{Graph Convolution.}
 \begin{equation}
 	\begin{aligned}
-		\rmM=g_{\valpha}^{(k)}(\hat L)=U\mathrm{diag}\left(g_{\valpha}^{(k)}(\vlambda)\right)U^{\top}=U\left(\sum_{i=0}^k\valpha_i\vlambda^i\right)U^{\top},
+		\rmM=g_{\valpha}^{(k)}(\hat L)=U\mathrm{diag}\left(g_{\valpha}^{(k)}(\vlambda)\right)U^{\top}=U\sum_{i=0}^k\valpha_i\vlambda^iU^{\top},
 	\end{aligned}
 \end{equation}
 where $g_{\valpha}^{(k)}$ denotes a $k$-degree polynomial with the polynomial coefficient $\valpha\in\sR^k$.
@@ -158,85 +192,100 @@ In this work, we fill this part by analyzing their representational power.
 
 %The expressive power of spectral graph convolution can be well quantified.
 
-Following the setting in \citet{xu2021optimization} and \citet{JacobiConv}, we study the fitting ability of the linear case of Equ.~\ref{equ:uni_grl}, trained with the squared loss $\gL=\left\|T\left(Y-\rmM H\right)\right\|_F$, where $T\in\{0,1\}^{m\times n}$ is the mask of training set, $m$ is the size of training set and $H=f_W(X)$.
-Then we have
-\begin{proposition}
+Following the setting in \citet{xu2021optimization} and \citet{JacobiConv}, we study the representational power, i.e. fitting ability, of the linear case of Equ.~\ref{equ:uni_grl} trained with the squared loss $\gL=\|Y-T\rmM H\|_F$, where $Y\in\{0,1\}^{m\times c}$ is the training set labels, $m$ is the size of training set, $T\in\{0,1\}^{m\times n}$ is the mask of training set and $H=f_W(X)$.
+%$Y^*\in\sR^{n\times c}$ is constructed by filling valid and test set with pesudo labels
+For any possible valid and test set labels, we pad them into $Y$ and obtain $Y^*\in\sR^{n\times c}$. Then $Y=TY^*$ and $\gL=\|Y-T\rmM H\|_F=\|TY^*-T\rmM H\|_F=\|T(Y^*-\rmM H)\|_F$.
+%Then we have
+\begin{lemma}
 	\label{prop:loss_bound}
 	Suppose $H$ has no missing frequency components over all channels and frequency profiles, i.e. $U_i^{\top}H_j\neq 0$, and $\|H_j\|_2\leq\eta$ for all $i\in[n],j\in[c]$, then
 	\begin{equation}
-		\label{equ:loss_bound}
+		\label{equ:bound}
 		\begin{aligned}
-			\gL\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y_i\right)-\vt\right\|_2,
+			\gL\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\vt\right\|_2,
 		\end{aligned}
 	\end{equation}
 	where $\rmM=U\mathrm{diag}(\vt)U^{\top}$.
-\end{proposition}
-We prove Proposition~\ref{prop:loss_bound} in Appendix~\ref{sec:deriviation}.
-As $H=f_W(X)$ and $\rmM=U\mathrm{diag}(\vt)U^{\top}$, Proposition~\ref{prop:loss_bound} indicates the upper bound of $\gL$ is controlled by both $f_{\rmM}^{\mathrm{col}}$ and $f_W^{\mathrm{row}}$.
+\end{lemma}
+We prove Lemma~\ref{prop:loss_bound} in Appendix~\ref{sec:deriviation}.
+As $H=f_W(X)$ and $\rmM=U\mathrm{diag}(\vt)U^{\top}$, Lemma~\ref{prop:loss_bound} indicates the upper bound of $\gL$ is controlled by both $f_{\rmM}^{\mathrm{col}}$ and $f_W^{\mathrm{row}}$.
 This is consistent with our empirical understanding that the predictions of nodes should consider both the node features and topology information.
 %Hence, we say the objective of node classification learning is to \emph{fit the target labels by properly leveraging graph topology and node feature information with $f_{\rmM}^{\mathrm{col}}$ and $f_W^{\mathrm{row}}$ respectively}.
 
 $f_W^{\mathrm{row}}$ is generally implemented as single- or multi-layer percetron whose representational power is guaranteed by universal approximation theorem~\citep{hornik1989multilayer,cybenko1989approximation}.
-In contrast, the design of the transformation $f_{\rmM}^{\mathrm{col}}$ is more challenging since apart from maintaining the representational power, it also needs to effectively encode topology information into the learned node representations, which is also mentioned as graph inductive biases in some literatures~\citep{ma2023graph}.
+In contrast, the design of the transformation $f_{\rmM}^{\mathrm{col}}$ is more challenging since apart from maintaining the representational power, it also needs to effectively encode topology information into the learned node representations, which is also mentioned as graph inductive biases~\citep{ma2023graph}.
 This highlights the difficulty of graph learning.
 Next, we study the effects of $f_{\rmM}^{\mathrm{col}}$ to the fitting ability.
 
-\subsection{Revisiting Polynoimal Filter via Fitting Ability}
+\subsection{The Representational Power of Polynomial Filters}
 Filter expressiveness in graph convolution has drawn extensive research interests.
 A common understanding is that a more expressive filter can better filtering signal patterns over different frequency profiles thus achieves better performance~\citep{chien2021adaptive,he2021bernnet,JacobiConv,yang2022spectrum,bo2022specformer}.
-Here, we show the connections between filter expressiveness and the fitting ability of models.
+Here, we study how filter expressiveness relates to the representational power of models.
 
-As shown in Equ.~\ref{equ:loss_bound}, $\vt$ is shared over all $c$ channels, for each channel $\vy\in\sR^n$ and the corresponding $\vh\in\sR^n$, we have
+As shown in Equ.~\ref{equ:bound}, $\vt$ is shared over all $c$ channels, for a given channel $\vy^*\in\sR^n$ and the corresponding $\vh\in\sR^n$, we have
 \begin{equation}
+	\label{equ:bound_s}
 	\begin{aligned}
-		\gL&=\left\|T\left(\vy-\rmM\vh\right)\right\|_2\\
-		&\leq\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-\vt\right\|_2.
+		\gL&=\left\|T\left(\vy^*-\rmM\vh\right)\right\|_2\\
+		&\leq\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2.
 	\end{aligned}
 \end{equation}
 %Here, we suppose $h$ has no missing frequency components over all frequency profiles, which means $U_i^{\top}\vh\neq 0$ for all $i\in[n]$.
 
-In graph convolution, $\vt$ is interpreted as filters and is generally approximated by polynomials $\vt=g_{\valpha}^{(k)}(\vlambda)$, where $k$ is the degree of polynomials and $\vlambda$ is the spectrum of $\hat L$.
-Let $\bar\gL_{g^{(k)}}=\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-g_{\valpha}^{(k)}(\vlambda)\right\|_2$.
-%denote the upper bound of $\gL$ that approximates $\vt$ with a degree-$k$ polynomial.
-\begin{proposition}
-	\label{prop:gc_fitting}
-	Given $\vh$ and $\vy$, $\bar\gL_{g^{(k)}}$ is parameterized by the polynomial coefficients $\valpha\in\sR^k$.
-	\begin{equation}
-		\begin{aligned}
-			\min_{\valpha}\bar\gL_{g^{(k+1)}}\leq\min_{\valpha}\bar\gL_{g^{(k)}}.
-		\end{aligned}
-	\end{equation}
-	When $k=n-1$, we have $\min_{\valpha}\bar\gL_{g^{(n-1)}}=0$.
-\end{proposition}
-We prove Proposition~\ref{prop:gc_fitting} in Appendix~\ref{sec:gc_fitting}.
-Proposition~\ref{prop:gc_fitting} shows that a more expressive, i.e. high-degree, polynomial filter achieves better fitting ability.
-The perfect fitting requires a degree-$(n-1)$ polynomial filter which is also called a universal filter~\citep{he2021bernnet,yang2022spectrum}.
+In graph convolution, $\vt$ is interpreted as a filter and is generally approximated by polynomials.
+Although there are extensive studies on approximation abilities, there is a lack of the understanding of the approximation objective.
+Equ.~\ref{equ:bound_s} fills this gap from the perspective of the representational power.
+Specifically, we use $\vt$ to approximate $(U^{\top}\vh)^{-1}\odot(U^{\top}\vy^*)$, and $\|(U^{\top}\vh)^{-1}\odot(U^{\top}\vy^*)-\vt\|_2$ is the approximation error.
+A smaller $\gL$ requires a smaller approximaton error.
+In the context of filter studies, the desired filter relates to graph topology $U$, input signals $\vh$ and the label distribution $\vy^*$.
+$U$ and $\vy^*$ together reflect the homophily of a graph.
+So the desired filter also relates to the graph homophily, which is consistent with our intuition.
 
-\subsection{Revisiting Truncate Filter via Fitting Ability}
-
-Although theoretically we can increase the degree of polynomials to consistently improve the expressiveness, unfortunately, due to the numerical instability, the high-degree polynomial is intractable~\citep{yang2022spectrum}.
-To address this limitation, an alternative way is to conduct eigendecomposition first and then learn the filter with more expressive MLP or Transformer~\citep{lingam2022piece,yang2022spectrum,bo2022specformer}.
-Correspondingly, $\rmM=U\mathrm{diag}\left(\mathrm{MLP}(\vlambda)\right)U^{\top}$ or $\rmM=U\mathrm{diag}\left(\mathrm{Transformer}(\vlambda)\right)U^{\top}$.
-The limitation is that it requires eigendecomposition which is intractable on large-scale graphs.
-Recent work by \cite{lingam2022piece} and \cite{bo2022specformer} shows that the truncate eigendecompostion achieves a good balance between prediction performance and computation efficiency.
-
-Assume the $k$-truncate eigendecomposition is applied.
-Correspondingly,
+Let $\epsilon=\|(U^{\top}\vh)^{-1}\odot(U^{\top}\vy^*)-\vt\|_2$ denote the approximation error of polynomials.
+Then according to Equ.!\ref{equ:bound_s}, we have
 \begin{equation}
+	\label{equ:bound_poly}
 	\begin{aligned}
-		\rmM&=\tilde U\mathrm{diag}\left(\mathrm{MLP}\left(\tilde\vlambda\right)\right)\tilde U^{\top}+\tilde U^{\prime}\mathrm{diag}\left(\mathbf 0\right)\tilde U^{\prime\top}\\
-		&=U\mathrm{diag}\left(\left(\mathrm{MLP}\left(\tilde\vlambda\right),\mathbf 0\right)\right)U^{\top},
+		\gL\leq\sqrt{m}n\eta\epsilon.
 	\end{aligned}
 \end{equation}
-where $\tilde\vlambda\in\sR^k$, $\mathbf 0\in\sR^{n-k}$, $\tilde U\in\sR^{n\times k}$, $\tilde U^{\prime}\in\sR^{n\times(n-k)}$ and $U\in\sR^{n\times n}$.
-$\vt=\left(\mathrm{MLP}\left(\tilde\vlambda\right),\mathbf 0\right)$.
+A high-degree polynomial achieves smaller approximation error, i.e. $\epsilon_{g^{(k+1)}}\leq\epsilon_{g^{(k)}}$, thus a high-degree polynomial corresponds to higher representational power.
+%Let $\bar\gL_{g^{(k)}}=\sqrt{m}n\eta\|(U^{\top}\vh)^{-1}\odot(U^{\top}\vy^*)-g_{\valpha}^{(k)}(\vlambda)\|_2$.
+%denote the upper bound of $\gL$ that approximates $\vt$ with a degree-$k$ polynomial.
+%\begin{proposition}
+%	\label{prop:gc_fitting}
+%	Given $\vh$ and $\vy^*$, $\bar\gL_{g^{(k)}}$ is parameterized by the polynomial coefficients $\valpha\in\sR^k$.
+%	\begin{equation}
+%		\begin{aligned}
+%			\min_{\valpha}\bar\gL_{g^{(k+1)}}\leq\min_{\valpha}\bar\gL_{g^{(k)}}.
+%		\end{aligned}
+%	\end{equation}
+%	When $k=n-1$, we have $\min_{\valpha}\bar\gL_{g^{(n-1)}}=0$.
+%\end{proposition}
+%We prove Proposition~\ref{prop:gc_fitting} in Appendix~\ref{sec:gc_fitting}.
+%Proposition~\ref{prop:gc_fitting} shows that a more expressive, i.e. high-degree, polynomial filter achieves better fitting ability.
+The perfect fitting requires a degree-$(n-1)$ polynomial which is also known as the universal filter approximator~\citep{he2021bernnet,yang2022spectrum,JacobiConv,bo2022specformer}.
+Now, we align filter expressiveness with the representaitonal power.
+Although theoretically we can increase the degree of polynomials to consistently improve the expressiveness, unfortunately, due to the limited computational precision and numerical instability, the high-degree polynomial are intractable in implementations~\citep{yang2022spectrum}.
 
+
+\subsection{The Representational Power of Truncate Filter}
+
+Due to the limited expressiveness of polynomials, some recent work choose to learn the filter with more expressive MLP or Transformer~\citep{lingam2022piece,yang2022spectrum,bo2022specformer}.
+Correspondingly, following the formulation of Equ.~\ref{equ:uni_grl}, $\rmM=U\mathrm{diag}(\mathrm{MLP}(\vlambda))U^{\top}$ or $\rmM=U\mathrm{diag}(\mathrm{Transformer}(\vlambda))U^{\top}$ respectively.
+The limitation is that it requires eigendecomposition computation to obtain $U$ and $\vlambda$ first, which is intractable on large-scale graphs.
+Luckily, the results show that utilizing partial spectrum information of the graph matrix can still obtain competitive prediction performance.
+Thus they apply truncate eigendecompostion which achieves a good balance between prediction performance and computation efficiency on large graphs.
+We call such partial eigendecomposition-based methods truncate filter.
+
+We use $\tilde\vlambda^{(k)}\in\sR^k$ and $\tilde U^{(k)}\in\sR^{n\times k}$ to denote the top $k$ spectrum information obtained by truncate eigendecomposition, and $\tilde U^{(n-k)}\in\sR^{n\times(n-k)}$ to denote the remaining $n-k$ eigenvectors.
 \begin{proposition}
 	\label{prop:trunc_fitting}
-	When applied $k$-truncate eigendecomposition, we have
+	When $\rmM=\tilde U^{(k)}\mathrm{diag}(\mathrm{MLP}(\tilde\vlambda^{(k)}))\tilde U^{(k)\top}$, we have
 	\begin{equation}
+		\label{equ:bound_trunc}
 		\begin{aligned}
-			\gL\leq\sqrt{m}n\eta\left(\epsilon+\left\|\left(\tilde U^{\prime\top}\vh\right)^{-1}\odot\left(\tilde U^{\prime\top}\vy\right)\right\|_2\right),
+			\gL\leq\sqrt{m}n\eta\left(\epsilon+\left\|\left(\tilde U^{(n-k)\top}\vh\right)^{-1}\odot\left(\tilde U^{(n-k)\top}\vy^*\right)\right\|_2\right),
 		\end{aligned}
 	\end{equation}
 	where $\epsilon>0$ denotes the approximation error of MLP.
@@ -245,33 +294,64 @@ We prove Proposition~\ref{prop:trunc_fitting} in Appendix~\ref{sec:trunc_fitting
 Proposition~\ref{prop:trunc_fitting} shows that a larger $k$ achieves better fitting ability.
 When $k=n$, $\gL\leq\sqrt{m}n\eta\epsilon$, where $\epsilon$ relates to the expressiveness of MLP.
 
+\subsection{Polynomial Filter VS Truncate Filter}
+\label{sec:vs}
+On the one hand, polynomial filters have drawn extensive research interests, and many spectral GNNs have been propposed based on different polynomials.
+On the other hand, truncate filters show its competitive performance in recent work.
+However, there is a lack of a detailed understanding of the difference between them.
+The representational power analysis provides a way to fill this gap.
+Specifically, we can compare the power of two filters by comparing which one achieves smaller loss bound.
+We use $\gL_{\textrm{poly.}}$ to denote the loss of polynomial filter as shown in Equ.~\ref{equ:bound_poly}, and $\gL_{\textrm{trunc.}}$ to denote the loss of polynomial filter as shown in Equ.~\ref{equ:bound_trunc}.
+Both $\gL_{\textrm{poly.}}$ and $\gL_{\textrm{trunc.}}$ are related to the approximation abilities of approximators and the availability of frequency profiles (FPs) as shown in Fig.~\ref{fig:spec_expr}.
+
 \begin{figure*}[h]
 	\centering
-	\includegraphics[width=0.7\textwidth]{figure/poly_trunc2}
-	\caption{The comparison between polynomial filter and trunc-eigend. filter.}
+	\includegraphics[width=0.6\textwidth]{figure/poly_trunc}
+	\caption{The comparison between polynomial filter and truncate filter.}
 	\label{fig:spec_expr}
 \end{figure*}
+%As shown in Fig.~\ref{fig:spec_expr}, the two filters vary from the approximation abilities of approximators and the availability of frequency profiles (FPs).
+Polynomial filters are implemented as the polynomial of the entire spectrum, thus they can operate all frequency profiles.
+While the limitation is that the polynomials as approximators whose approximation abilities are bounded by the degree of polynomials.
+Generally, the applicable degree of polynomials is far from the desired infinite approximation power, i.e. $k=n$.
+Therefore, although polynomial filters have all profiles response, the approximation error can be large, and this leads to a larger bound of $\gL_{\textrm{poly.}}$.
+In contrast, truncate filters conduct truncate eigendecomposition and can only operate partial spectrum, thus they can only operate partial frequency profiles.
+For the missing frequency profiles, it corresponds to $\|(\tilde U^{(n-k)\top}\vh)^{-1}\odot(\tilde U^{(n-k)\top}\vy^*)\|_2$ as in Equ.~\ref{equ:bound_trunc}.
+The positive side is that for the available frequency profiles, truncate frilter can achieve infinite approximation power (which correponds to $k=n$) with powerful approximators like MLP or Transformer.
+Therefore, truncate filters are complementary to polynomial filters that well handle the approximation error but only on the partial profiles.
+If the label information has no frequency components in the missing profiles, i.e. $(\tilde U^{(n-k)\top}\vy^*)=\mathbf 0$, truncate filters can achieve much smaller loss bound.
 
 
 
-\section{title}
+\section{Designing Powerful and Computational Efficient $\rmM$}
 
-
-Do we really need $U$ to be orthogonal?
-
-As $\gL\leq\sqrt{m}\left\|\vy-\rmM\vh\right\|_2$, let $\bar\gL=\sqrt{m}\left\|\vy-\rmM\vh\right\|_2$.
+Following the principle of graph convolution, the most powerful model requires the filter approximator to have infinite approximation power over all frequency profiles.
+This objctive is much challenging as discussed in Sec.~\ref{sec:vs}.
+Also, we have shown that various efforts in improving graph convolutions can be unified into imrpoving the representational power.
+Naturally, this motivates us to alter the objective to imrpoving the representational power.
+Let $\bar\gL=\sqrt{m}\|\vy^*-\rmM\vh\|_2$ denote the upper bound of $\gL$.
 \begin{proposition}
 	\label{prop:relaxed_fitting}
-	Given a group of $k+1$ linear independent vectors, let $U^{(k)}=\left(\vu_1,\dots,\vu_k\right)\in\sR^{n\times k}$, $U^{(k+1)}=\left(\vu_1,\dots,\vu_{k+1}\right)\in\sR^{n\times(k+1)}$ and $\rmM^{(k)}=U^{(k)}\mathrm{diag}\left(\valpha\right)U^{(k)\top}$.
+	Given a group of $k+1$ linearly independent vectors, let $U^{(k)}=(\vu_1,\dots,\vu_k)\in\sR^{n\times k}$, $U^{(k+1)}=(\vu_1,\dots,\vu_{k+1})\in\sR^{n\times(k+1)}$ and $\rmM^{(k)}=U^{(k)}\mathrm{diag}(\valpha)U^{(k)\top}$.
 	Then we have
 	\begin{equation}
 		\begin{aligned}
 			\min_{\valpha}\bar\gL_{\rmM^{(k+1)}}\leq\min_{\valpha}\bar\gL_{\rmM^{(k)}}.
 		\end{aligned}
 	\end{equation}
-	When $k=n$, we have $\min_{\valpha}\bar\gL_{M^{(k)}}=0$.
+	When $k=n$, we have $\min_{\valpha}\bar\gL_{\rmM^{(k)}}=0$.
 \end{proposition}
 We prove Proposition~\ref{prop:relaxed_fitting} in Appendix~\ref{sec:relaxed_fitting}.
+In graph convlution, the columns of $U$ is considered as the bases of graph Fourier transform and are orthogonal to each other.
+However, from the perspective of improving the representational power, the orthogonality is unnecessary, and one can apply a larger $k$ to consistently improve the representational power as long as all $\vu_i$ are linearly independent.
+Benefit from relaxing the orthogonality requirement, we can make the highest representational power implementable.
+
+\begin{figure*}[h]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figure/mte}
+	\caption{Xxx.}
+	\label{fig:mte}
+\end{figure*}
 
 
 \section{Experiments}
@@ -287,76 +367,89 @@ We prove Proposition~\ref{prop:relaxed_fitting} in Appendix~\ref{sec:relaxed_fit
 
 \appendix
 
-\section{Proof of Proposition.~\ref{prop:loss_bound}}
+\section{Proof of Lemma~\ref{prop:loss_bound}}
 \label{sec:deriviation}
 
 %\begin{equation}
 %	\begin{aligned}
-%		\gL&=\left\|T\left(\vy-\rmM\vh\right)\right\|_2\\
-%		&\leq\left\|T\right\|_F\left\|\vy-\rmM\vh\right\|_2\\
-%		&=\sqrt{m}\left\|UU^{\top}\vy-U\mathrm{diag}\left(\vt\right)U^{\top}\vh\right\|_2\\
-%		&\leq\sqrt{m}\left\|U\right\|_F\left\|U^{\top}\vy-\mathrm{diag}\left(\vt\right)U^{\top}\vh\right\|_2\\
-%		&=\sqrt{m}\sqrt{n}\left\|U^{\top}\vy-\mathrm{diag}\left(U^{\top}\vh\right)\vt\right\|_2\\
-%		&=\sqrt{m}\sqrt{n}\left\|\mathrm{diag}\left(U^{\top}\vh\right)\left(\mathrm{diag}^{-1}\left(U^{\top}\vh\right)U^{\top}\vy-\vt\right)\right\|_2\\
-%		&\leq\sqrt{m}\sqrt{n}\left\|U^{\top}\vh\right\|_2\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-\vt\right\|_2\\
-%		&\leq\sqrt{m}n\left\|\vh\right\|_2\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-\vt\right\|_2\\
-%		&\leq\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-\vt\right\|_2
+%		\gL
+%%		&=\left\|\vy^{\mathrm{train}}-T\rmM\vh\right\|_2\\
+%%		&=\left\|T\vy^*-T\rmM\vh\right\|_2\\
+%		&=\left\|T\left(\vy^*-\rmM\vh\right)\right\|_2\\
+%		&\leq\left\|T\right\|_F\left\|\vy^*-\rmM\vh\right\|_2\\
+%		&=\sqrt{m}\left\|UU^{\top}\vy^*-U\mathrm{diag}\left(\vt\right)U^{\top}\vh\right\|_2\\
+%		&\leq\sqrt{m}\left\|U\right\|_F\left\|U^{\top}\vy^*-\mathrm{diag}\left(\vt\right)U^{\top}\vh\right\|_2\\
+%		&=\sqrt{m}\sqrt{n}\left\|U^{\top}\vy^*-\mathrm{diag}\left(U^{\top}\vh\right)\vt\right\|_2\\
+%		&=\sqrt{m}\sqrt{n}\left\|\mathrm{diag}\left(U^{\top}\vh\right)\left(\mathrm{diag}^{-1}\left(U^{\top}\vh\right)U^{\top}\vy^*-\vt\right)\right\|_2\\
+%		&\leq\sqrt{m}\sqrt{n}\left\|U^{\top}\vh\right\|_2\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2\\
+%		&\leq\sqrt{m}n\left\|\vh\right\|_2\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2\\
+%		&\leq\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2
 %	\end{aligned}
 %\end{equation}
 
 
 \begin{equation}
 	\begin{aligned}
-		\gL&=\left\|T\left(Y-\rmM H\right)\right\|_F\\
-		&\leq\left\|T\right\|_F\left\|Y-\rmM H\right\|_F\\
-		&=\sqrt{m}\left\|UU^{\top}Y-U\mathrm{diag}\left(\vt\right)U^{\top}H\right\|_F\\
-		&\leq\sqrt{m}\left\|U\right\|_F\left\|U^{\top}Y-\mathrm{diag}\left(\vt\right)U^{\top}H\right\|_F\\
-		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{i=1}^c\left\|U^{\top}Y_i-\mathrm{diag}\left(\vt\right)U^{\top}H_i\right\|^2_2}\\
-		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|U^{\top}Y_i-\mathrm{diag}\left(U^{\top}H_i\right)\vt\right\|_2\\
-		&=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\mathrm{diag}\left(U^{\top}H_i\right)\left(\mathrm{diag}^{-1}\left(U^{\top}H_i\right)U^{\top}Y_i-\vt\right)\right\|_2\\
-		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|U^{\top}H_i\right\|_2\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y_i\right)-\vt\right\|_2\\
-		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|U^{\top}\right\|_F\left\|H_i\right\|_2\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y_i\right)-\vt\right\|_2\\
-		&=\sqrt{m}n\sum_{i=1}^c\left\|H_i\right\|_2\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y_i\right)-\vt\right\|_2\\
-		&\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y_i\right)-\vt\right\|_2
+		\gL&=\left\|T\left(Y^*-\rmM H\right)\right\|_F\\
+		&\leq\left\|T\right\|_F\left\|Y^*-\rmM H\right\|_F\\
+		&=\sqrt{m}\left\|UU^{\top}Y^*-U\mathrm{diag}\left(\vt\right)U^{\top}H\right\|_F\\
+		&\leq\sqrt{m}\left\|U\right\|_F\left\|U^{\top}Y^*-\mathrm{diag}\left(\vt\right)U^{\top}H\right\|_F\\
+		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{i=1}^c\left\|U^{\top}Y^*_i-\mathrm{diag}\left(\vt\right)U^{\top}H_i\right\|^2_2}\\
+		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|U^{\top}Y^*_i-\mathrm{diag}\left(U^{\top}H_i\right)\vt\right\|_2\\
+		&=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\mathrm{diag}\left(U^{\top}H_i\right)\left(\mathrm{diag}^{-1}\left(U^{\top}H_i\right)U^{\top}Y^*_i-\vt\right)\right\|_2\\
+		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|U^{\top}H_i\right\|_2\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\vt\right\|_2\\
+		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|U^{\top}\right\|_F\left\|H_i\right\|_2\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\vt\right\|_2\\
+		&=\sqrt{m}n\sum_{i=1}^c\left\|H_i\right\|_2\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\vt\right\|_2\\
+		&\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\vt\right\|_2
 	\end{aligned}
 \end{equation}
 
-\section{Proof of Proposition~\ref{prop:gc_fitting}}
-\label{sec:gc_fitting}
-\begin{equation}
-	\begin{aligned}
-		\min_{\valpha}\bar\gL_{g^{(k)}}&=\min_{\alpha_0,\dots\alpha_k}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-g_{\valpha}^{(k)}(\vlambda)\right\|_2\\
-		&=\min_{\alpha_0,\dots\alpha_k}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-\sum_{i=0}^k\alpha_i\vlambda^i\right\|_2\\
-		&=\min_{\alpha_0,\dots\alpha_k|\alpha_{k+1}=0}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-\sum_{i=0}^{k+1}\alpha_i\vlambda^i\right\|_2\\
-		&\geq\min_{\alpha_0,\dots\alpha_{k+1}}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-\sum_{i=0}^{k+1}\alpha_i\vlambda^i\right\|_2\\
-		&=\min_{\alpha_0,\dots\alpha_{k+1}}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-g_{\valpha}^{(k+1)}(\vlambda)\right\|_2\\
-		&=\min_{\valpha}\bar\gL_{g^{(k+1)}}
-	\end{aligned}
-\end{equation}
-
-With $g_{\valpha}^{(n-1)}(\vlambda)=\sum_{i=0}^{n-1}\alpha_i\vlambda^i=\left(\vlambda^0,\vlambda^1,\dots\vlambda^{n-1}\right)\valpha$, consider the linear system $\left(\vlambda^0,\vlambda^1,\dots\vlambda^{n-1}\right)\valpha=\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)$.
-When $\vlambda$ has no repeated entries, $\left(\vlambda^0,\vlambda^1,\dots\vlambda^{n-1}\right)$ is a Vandermonde matrix with the rank equal to $n$.
-Hence, a solution $\valpha_0$ always exists.
-Hence
-\begin{equation}
-	\begin{aligned}
-		\min_{\valpha}\bar\gL_{g^{(n)}}&=\min_{\alpha_0,\dots\alpha_{n-1}}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-g_{\valpha}^{(n-1)}(\vlambda)\right\|_2\\
-		&=\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-\left(\vlambda^0,\vlambda^1,\dots\vlambda^{n-1}\right)\valpha_0\right\|_2\\
-		&=0.
-	\end{aligned}
-\end{equation}
+%\section{Proof of Proposition~\ref{prop:gc_fitting}}
+%\label{sec:gc_fitting}
+%\begin{equation}
+%	\begin{aligned}
+%		\min_{\valpha}\bar\gL_{g^{(k)}}&=\min_{\alpha_0,\dots\alpha_k}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-g_{\valpha}^{(k)}(\vlambda)\right\|_2\\
+%		&=\min_{\alpha_0,\dots\alpha_k}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\sum_{i=0}^k\alpha_i\vlambda^i\right\|_2\\
+%		&=\min_{\alpha_0,\dots\alpha_k|\alpha_{k+1}=0}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\sum_{i=0}^{k+1}\alpha_i\vlambda^i\right\|_2\\
+%		&\geq\min_{\alpha_0,\dots\alpha_{k+1}}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\sum_{i=0}^{k+1}\alpha_i\vlambda^i\right\|_2\\
+%		&=\min_{\alpha_0,\dots\alpha_{k+1}}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-g_{\valpha}^{(k+1)}(\vlambda)\right\|_2\\
+%		&=\min_{\valpha}\bar\gL_{g^{(k+1)}}
+%	\end{aligned}
+%\end{equation}
+%
+%With $g_{\valpha}^{(n-1)}(\vlambda)=\sum_{i=0}^{n-1}\alpha_i\vlambda^i=\left(\vlambda^0,\vlambda^1,\dots\vlambda^{n-1}\right)\valpha$, consider the linear system $\left(\vlambda^0,\vlambda^1,\dots\vlambda^{n-1}\right)\valpha=\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)$.
+%When $\vlambda$ has no repeated entries, $\left(\vlambda^0,\vlambda^1,\dots\vlambda^{n-1}\right)$ is a Vandermonde matrix with the rank equal to $n$.
+%Hence, a solution $\valpha_0$ always exists.
+%Hence
+%\begin{equation}
+%	\begin{aligned}
+%		\min_{\valpha}\bar\gL_{g^{(n)}}&=\min_{\alpha_0,\dots\alpha_{n-1}}\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-g_{\valpha}^{(n-1)}(\vlambda)\right\|_2\\
+%		&=\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\left(\vlambda^0,\vlambda^1,\dots\vlambda^{n-1}\right)\valpha_0\right\|_2\\
+%		&=0.
+%	\end{aligned}
+%\end{equation}
 
 \section{Proof of Proposition~\ref{prop:trunc_fitting}}
 \label{sec:trunc_fitting}
+Assume the $k$-truncate eigendecomposition is applied.
+Correspondingly,
+\begin{equation}
+	\begin{aligned}
+		\rmM&=\tilde U^{(k)}\mathrm{diag}\left(\mathrm{MLP}\left(\tilde\vlambda^{(k)}\right)\right)\tilde U^{(k)\top}+\tilde U^{(n-k)}\mathrm{diag}\left(\mathbf 0\right)\tilde U^{(n-k)\top}\\
+		&=U\mathrm{diag}\left(\left(\mathrm{MLP}\left(\tilde\vlambda^{(k)}\right),\mathbf 0\right)\right)U^{\top}\\
+		&=U\mathrm{diag}\left(\vt\right)U^{\top},
+	\end{aligned}
+\end{equation}
+where $\vt=(\mathrm{MLP}(\tilde\vlambda),\mathbf 0)\in\sR^n$.
 Let $\epsilon>0$ denotes the approximation error of MLP.
 Then
 \begin{equation}
 	\begin{aligned}
-		\gL&\leq\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-\vt\right\|_2\\
-		&=\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy\right)-\left(\mathrm{MLP}\left(\tilde\vlambda\right),\mathbf 0\right)\right\|_2\\
-		&=\sqrt{m}n\eta\sqrt{\left\|\left(\tilde U^{\top}\vh\right)^{-1}\odot\left(\tilde U^{\top}\vy\right)-\mathrm{MLP}\left(\tilde\vlambda\right)\right\|_2^2+\left\|\left(\tilde U^{\prime\top}\vh\right)^{-1}\odot\left(\tilde U^{\prime\top}\vy\right)-\mathbf 0\right\|_2^2}\\
-		&\leq\sqrt{m}n\eta\sqrt{\epsilon^2+\left\|\left(\tilde U^{\prime\top}\vh\right)^{-1}\odot\left(\tilde U^{\prime\top}\vy\right)\right\|_2^2}\\
-		&\leq\sqrt{m}n\eta\left(\epsilon+\left\|\left(\tilde U^{\prime\top}\vh\right)^{-1}\odot\left(\tilde U^{\prime\top}\vy\right)\right\|_2\right).
+		\gL&\leq\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2\\
+		&=\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\left(\mathrm{MLP}\left(\tilde\vlambda\right),\mathbf 0\right)\right\|_2\\
+		&=\sqrt{m}n\eta\sqrt{\left\|\left(\tilde U^{\top}\vh\right)^{-1}\odot\left(\tilde U^{\top}\vy^*\right)-\mathrm{MLP}\left(\tilde\vlambda\right)\right\|_2^2+\left\|\left(\tilde U^{\prime\top}\vh\right)^{-1}\odot\left(\tilde U^{\prime\top}\vy^*\right)-\mathbf 0\right\|_2^2}\\
+		&\leq\sqrt{m}n\eta\sqrt{\epsilon^2+\left\|\left(\tilde U^{\prime\top}\vh\right)^{-1}\odot\left(\tilde U^{\prime\top}\vy^*\right)\right\|_2^2}\\
+		&\leq\sqrt{m}n\eta\left(\epsilon+\left\|\left(\tilde U^{\prime\top}\vh\right)^{-1}\odot\left(\tilde U^{\prime\top}\vy^*\right)\right\|_2\right).
 	\end{aligned}
 \end{equation}
 
@@ -365,20 +458,20 @@ Then
 
 \begin{equation}
 	\begin{aligned}
-		\min_{\valpha}\bar\gL_{\rmM^{(k+1)}}&=\min_{\valpha}\sqrt{m}\left\|\vy-\rmM^{(k+1)}\vh\right\|_2\\
-		&=\min_{\alpha_0,\dots\alpha_{k+1}}\sqrt{m}\left\|\vy-\sum_{i=1}^{k+1}\valpha_iU_iU_i^{\top}\vh\right\|_2\\
-		&\leq\min_{\alpha_0,\dots\alpha_k|\alpha_{k+1}=0}\sqrt{m}\left\|\vy-\sum_{i=1}^{k+1}\valpha_iU_iU_i^{\top}\vh\right\|_2\\
-		&=\min_{\alpha_0,\dots\alpha_k}\sqrt{m}\left\|\vy-\sum_{i=1}^k\valpha_iU_iU_i^{\top}\vh\right\|_2\\
-		&=\min_{\valpha}\sqrt{m}\left\|\vy-\rmM^{(k)}\vh\right\|_2\\
+		\min_{\valpha}\bar\gL_{\rmM^{(k+1)}}&=\min_{\valpha}\sqrt{m}\left\|\vy^*-\rmM^{(k+1)}\vh\right\|_2\\
+		&=\min_{\alpha_0,\dots\alpha_{k+1}}\sqrt{m}\left\|\vy^*-\sum_{i=1}^{k+1}\valpha_iU_iU_i^{\top}\vh\right\|_2\\
+		&\leq\min_{\alpha_0,\dots\alpha_k|\alpha_{k+1}=0}\sqrt{m}\left\|\vy^*-\sum_{i=1}^{k+1}\valpha_iU_iU_i^{\top}\vh\right\|_2\\
+		&=\min_{\alpha_0,\dots\alpha_k}\sqrt{m}\left\|\vy^*-\sum_{i=1}^k\valpha_iU_iU_i^{\top}\vh\right\|_2\\
+		&=\min_{\valpha}\sqrt{m}\left\|\vy^*-\rmM^{(k)}\vh\right\|_2\\
 		&=\min_{\valpha}\bar\gL_{\rmM^{(k)}}
 	\end{aligned}
 \end{equation}
-When $k=n$, $\rmM^{(n)}\vh=U\mathrm{diag}(\valpha)U^{\top}\vh=U\left(\valpha\odot U^{\top}\vh\right)$.
+When $k=n$, $\rmM^{(n)}\vh=U\mathrm{diag}(\valpha)U^{\top}\vh=U(\valpha\odot U^{\top}\vh)$.
 Let $\vx=\valpha\odot U^{\top}\vh$.
-Consider the linear system $U\vx=\vy$.
+Consider the linear system $U\vx=\vy^*$.
 As $\mathrm{rank}(U)=n$, a solution $\vx_0$ always exists.
 Suppose $U_i^{\top}\vh\neq0$ for all $i\in[n]$.
-Correspondingly, $\valpha_0=\vx_0\odot\left(U^{\top}\vh\right)^{-1}$.
+Correspondingly, $\valpha_0=\vx_0\odot(U^{\top}\vh)^{-1}$.
 Therefore, $\min_{\valpha}\bar\gL_{\rmM^{(n)}}=\bar\gL_{\rmM^{(n)}}\big|_{\valpha_0}=0$.
 
 
@@ -389,7 +482,7 @@ Therefore, $\min_{\valpha}\bar\gL_{\rmM^{(n)}}=\bar\gL_{\rmM^{(n)}}\big|_{\valph
 $H$ is channel-independent.
 $\vt$ is shared over different channels.
 There are also channel-independent filter design where each signal channel learns an individual filter~\citep{yang2022spectrum,JacobiConv,bo2022specformer}.
-Correspondingly, the loss is $\gL\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y_i\right)-\rmT_i\right\|_F$ with $\rmT\in\sR^{n\times c}$.
+Correspondingly, the loss is $\gL\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\rmT_i\right\|_F$ with $\rmT\in\sR^{n\times c}$.
 
 \subsection{Exploring graph representation space}
 According to spectral theorem $\rmM=U\mathrm{diag}(\vt)U^{\top}$, a graph matrix representation $\rmM$ provides a unique tuple $(U,\vt)$.
@@ -398,31 +491,31 @@ Improving fitting ability while maintaining graph topology information.
 
 \begin{equation}
 	\begin{aligned}
-		\gL&=\left\|T\left(Y-\rmM H\right)\right\|_F\\
-		&\leq\left\|T\right\|_F\left\|Y-\rmM H\right\|_F\\
-		&=\left\|T\right\|_F\left\|Y-\sum_{i=1}^n\vlambda_iU_iU_i^{\top}H\right\|_F\\
-		&=\left\|T\right\|_F\left\|\sum_{i=1}^nU_iU_i^{\top}Y-\sum_{i=1}^n\vlambda_iU_iU_i^{\top}H\right\|_F\\
-		&=\left\|T\right\|_F\left\|\sum_{i=1}^nU_iU_i^{\top}\left(Y-\vlambda_iH\right)\right\|_F\\
-		&\leq\left\|T\right\|_F\sum_{i=1}^n\left\|U_iU_i^{\top}\left(Y-\vlambda_iH\right)\right\|_F\\
-		&=\left\|T\right\|_F\sum_{i=1}^n\sqrt{\sum_{j=1}^c\left\|U_iU_i^{\top}\left(Y_j-\vlambda_iH_j\right)\right\|^2_F}\\
-		&=\left\|T\right\|_F\sum_{i=1}^n\sqrt{\sum_{j=1}^c\left(U_i^{\top}\left(Y_j-\vlambda_iH_j\right)\right)^2\left\|U_i\right\|^2_F}\\
-		&=\left\|T\right\|_F\sum_{i=1}^n\sqrt{\sum_{j=1}^c\left(U_i^{\top}\left(Y_j-\vlambda_iH_j\right)\right)^2}
+		\gL&=\left\|T\left(Y^*-\rmM H\right)\right\|_F\\
+		&\leq\left\|T\right\|_F\left\|Y^*-\rmM H\right\|_F\\
+		&=\left\|T\right\|_F\left\|Y^*-\sum_{i=1}^n\vlambda_iU_iU_i^{\top}H\right\|_F\\
+		&=\left\|T\right\|_F\left\|\sum_{i=1}^nU_iU_i^{\top}Y^*-\sum_{i=1}^n\vlambda_iU_iU_i^{\top}H\right\|_F\\
+		&=\left\|T\right\|_F\left\|\sum_{i=1}^nU_iU_i^{\top}\left(Y^*-\vlambda_iH\right)\right\|_F\\
+		&\leq\left\|T\right\|_F\sum_{i=1}^n\left\|U_iU_i^{\top}\left(Y^*-\vlambda_iH\right)\right\|_F\\
+		&=\left\|T\right\|_F\sum_{i=1}^n\sqrt{\sum_{j=1}^c\left\|U_iU_i^{\top}\left(Y^*_j-\vlambda_iH_j\right)\right\|^2_F}\\
+		&=\left\|T\right\|_F\sum_{i=1}^n\sqrt{\sum_{j=1}^c\left(U_i^{\top}\left(Y^*_j-\vlambda_iH_j\right)\right)^2\left\|U_i\right\|^2_F}\\
+		&=\left\|T\right\|_F\sum_{i=1}^n\sqrt{\sum_{j=1}^c\left(U_i^{\top}\left(Y^*_j-\vlambda_iH_j\right)\right)^2}
 	\end{aligned}
 \end{equation}
 
 \begin{equation}
 	\begin{aligned}
-		\gL&=\left\|T\left(Y-\rmM H\right)\right\|_F\\
-		&\leq\left\|T\right\|_F\left\|Y-\rmM H\right\|_F\\
-		&=\sqrt{m}\left\|UU^{\top}Y-U\mathrm{diag}\left(\vt\right)U^{\top}H\right\|_F\\
-		&\leq\sqrt{m}\left\|U\right\|_F\left\|U^{\top}Y-\mathrm{diag}\left(\vt\right)U^{\top}H\right\|_F\\
-		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{j=1}^c\left\|U^{\top}Y_j-\mathrm{diag}\left(\vt\right)U^{\top}H_j\right\|^2_F}\\
-		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{j=1}^c\left\|U^{\top}Y_j-\mathrm{diag}\left(U^{\top}H_j\right)\vlambda\right\|^2_F}\\
-		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{j=1}^c\left\|\mathrm{diag}\left(U^{\top}H_j\right)\left(\mathrm{diag}^{-1}\left(U^{\top}H_j\right)U^{\top}Y_j-\vlambda\right)\right\|^2_F}\\
-		&\leq\sqrt{m}\sqrt{n}\sqrt{\sum_{j=1}^c\left\|U^{\top}H_j\right\|^2_F\left\|\left(U^{\top}H_j\right)^{-1}\odot\left(U^{\top}Y_j\right)-\vlambda\right\|^2_F}\\
-		&\leq\sqrt{m}\sqrt{n}\sqrt{\sum_{j=1}^c\left\|U^{\top}\right\|^2_F\left\|H_j\right\|^2_F\left\|\left(U^{\top}H_j\right)^{-1}\odot\left(U^{\top}Y_j\right)-\vlambda\right\|^2_F}\\
-		&=\sqrt{m}n\sqrt{\sum_{j=1}^c\left\|H_j\right\|^2_F\left\|\left(U^{\top}H_j\right)^{-1}\odot\left(U^{\top}Y_j\right)-\vlambda\right\|^2_F}\\
-		&\leq\sqrt{m}n\sum_{j=1}^c\left\|H_j\right\|_F\left\|\left(U^{\top}H_j\right)^{-1}\odot\left(U^{\top}Y_j\right)-\vlambda\right\|_F
+		\gL&=\left\|T\left(Y^*-\rmM H\right)\right\|_F\\
+		&\leq\left\|T\right\|_F\left\|Y^*-\rmM H\right\|_F\\
+		&=\sqrt{m}\left\|UU^{\top}Y^*-U\mathrm{diag}\left(\vt\right)U^{\top}H\right\|_F\\
+		&\leq\sqrt{m}\left\|U\right\|_F\left\|U^{\top}Y^*-\mathrm{diag}\left(\vt\right)U^{\top}H\right\|_F\\
+		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{j=1}^c\left\|U^{\top}Y^*_j-\mathrm{diag}\left(\vt\right)U^{\top}H_j\right\|^2_F}\\
+		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{j=1}^c\left\|U^{\top}Y^*_j-\mathrm{diag}\left(U^{\top}H_j\right)\vlambda\right\|^2_F}\\
+		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{j=1}^c\left\|\mathrm{diag}\left(U^{\top}H_j\right)\left(\mathrm{diag}^{-1}\left(U^{\top}H_j\right)U^{\top}Y^*_j-\vlambda\right)\right\|^2_F}\\
+		&\leq\sqrt{m}\sqrt{n}\sqrt{\sum_{j=1}^c\left\|U^{\top}H_j\right\|^2_F\left\|\left(U^{\top}H_j\right)^{-1}\odot\left(U^{\top}Y^*_j\right)-\vlambda\right\|^2_F}\\
+		&\leq\sqrt{m}\sqrt{n}\sqrt{\sum_{j=1}^c\left\|U^{\top}\right\|^2_F\left\|H_j\right\|^2_F\left\|\left(U^{\top}H_j\right)^{-1}\odot\left(U^{\top}Y^*_j\right)-\vlambda\right\|^2_F}\\
+		&=\sqrt{m}n\sqrt{\sum_{j=1}^c\left\|H_j\right\|^2_F\left\|\left(U^{\top}H_j\right)^{-1}\odot\left(U^{\top}Y^*_j\right)-\vlambda\right\|^2_F}\\
+		&\leq\sqrt{m}n\sum_{j=1}^c\left\|H_j\right\|_F\left\|\left(U^{\top}H_j\right)^{-1}\odot\left(U^{\top}Y^*_j\right)-\vlambda\right\|_F
 	\end{aligned}
 \end{equation}
 
