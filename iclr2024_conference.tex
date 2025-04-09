@@ -242,7 +242,7 @@ $U$ and $\vy^*$ together reflect the homophily of a graph.
 So the desired filter also relates to the graph homophily, which is consistent with our intuition.
 
 Let $\epsilon=\|(U^{\top}\vh)^{-1}\odot(U^{\top}\vy^*)-\vt\|_2$ denote the approximation error of polynomials.
-Then according to Equ.!\ref{equ:bound_s}, we have
+Then according to Equ.~\ref{equ:bound_s}, we have
 \begin{equation}
 	\label{equ:bound_poly}
 	\begin{aligned}
@@ -473,6 +473,22 @@ As $\mathrm{rank}(U)=n$, a solution $\vx_0$ always exists.
 Suppose $U_i^{\top}\vh\neq0$ for all $i\in[n]$.
 Correspondingly, $\valpha_0=\vx_0\odot(U^{\top}\vh)^{-1}$.
 Therefore, $\min_{\valpha}\bar\gL_{\rmM^{(n)}}=\bar\gL_{\rmM^{(n)}}\big|_{\valpha_0}=0$.
+
+
+\section{Proof of Proposition~\ref{prop:relaxed_fitting}}
+\label{sec:relaxed_fitting2}
+
+For any $\valpha\in\sR^{k+1}$, we have
+\begin{equation}
+	\begin{aligned}
+		\bar\gL_{\rmM^{(k+1)}}&=\sup\left\|\vy^*-\rmM^{(k+1)}\vh\right\|_2\\
+		&=\left\|\vy^*-\sum_{i=1}^{k+1}\valpha_iU_iU_i^{\top}\vh\right\|_2\\
+		&\leq\left\|\vy^*-\sum_{i=1}^{k+1}\valpha_iU_iU_i^{\top}\vh\right\|_2\\
+		&=\left\|\vy^*-\sum_{i=1}^k\valpha_iU_iU_i^{\top}\vh\right\|_2\\
+		&=\left\|\vy^*-\rmM^{(k)}\vh\right\|_2\\
+		&=\bar\gL_{\rmM^{(k)}}
+	\end{aligned}
+\end{equation}
 
 
 \newpage
