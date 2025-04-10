@@ -74,12 +74,12 @@
 	Guaranteed representational power + incorporate proper graph inductive bias.
 \end{abstract}
 
-\textcolor{blue}{
+{\color{orange}
 	\textbf{Motivation:}
 	Xxx
 }
 
-\textcolor{blue}{
+{\color{blue}
 \textbf{Outline:}
 \begin{itemize}
 	\item
@@ -109,6 +109,15 @@
 \end{itemize}
 }
 
+{\color{purple}
+\textbf{Misc:}
+
+Predict (row-wise transformation) then propagate (column-wise transformation) paradigm
+
+A more well-motivated explanation of required filters based on labels over exisitng low/high pass filter arguements.
+Lemma shows that $\gL$ relates to graph structure, node features and labels.
+}
+
 \section{Introduction}
 
 \section{Preliminaries}
@@ -124,8 +133,8 @@ Given a graph $G$ and node features $X\in\sR^{n\times d}$, the operations in var
 %		&=\sigma(\rmM\sigma(XW)).
 	\end{aligned}
 \end{equation}
-Here, regarding to specific graph learning modesl, $f_W^{\mathrm{row}}(\square)=\sigma(\square W)$ can be a single- or multi-layer percetron applied on each row of $X$ by right multiplying $W$, where $W\in\sR^{d\times d^{\prime}}$ is the learnable weights.
-$f_{\rmM}^{\mathrm{col}}(\square)=\sigma(\rmM\square)$ is applied on each column of $X$ by left multiplying $\rmM$, where $\rmM\in\sR^{n\times n}$ is the matrix representation of $G$.
+Here, regarding to specific graph learning modesl, $f_W^{\mathrm{row}}(\gO)=\sigma(\gO W)$ can be a single- or multi-layer percetron applied on each row of $X$ by right multiplying $W$, where $W\in\sR^{d\times d^{\prime}}$ is the learnable weights.
+$f_{\rmM}^{\mathrm{col}}(\gO)=\sigma(\rmM\gO)$ is applied on each column of $X$ by left multiplying $\rmM$, where $\rmM\in\sR^{n\times n}$ is the matrix representation of $G$.
 $\rmM$ can also be learnable.
 Most importantly, $\rmM$ incorporates \emph{graph inductive biases} to leverage topology information in learning node representations.
 For example, in GCN, $\rmM=\hat A$.
@@ -192,20 +201,30 @@ In this work, we fill this part by analyzing their representational power.
 
 %The expressive power of spectral graph convolution can be well quantified.
 
-Following the setting in \citet{xu2021optimization} and \citet{JacobiConv}, we study the representational power, i.e. fitting ability, of the linear case of Equ.~\ref{equ:uni_grl} trained with the squared loss $\gL=\|Y-T\rmM H\|_F$, where $Y\in\{0,1\}^{m\times c}$ is the training set labels, $m$ is the size of training set, $T\in\{0,1\}^{m\times n}$ is the mask of training set and $H=f_W(X)$.
-%$Y^*\in\sR^{n\times c}$ is constructed by filling valid and test set with pesudo labels
-For any possible valid and test set labels, we pad them into $Y$ and obtain $Y^*\in\sR^{n\times c}$. Then $Y=TY^*$ and $\gL=\|Y-T\rmM H\|_F=\|TY^*-T\rmM H\|_F=\|T(Y^*-\rmM H)\|_F$.
+Following the setting in \citet{xu2021optimization} and \citet{JacobiConv}, we study the representational power, i.e. fitting ability, of the linear case of Equation~\ref{equ:uni_grl} trained with the squared loss.
+For the standard semi-supervised node classification, it corresponds to
+\begin{equation}
+	\label{equ:square}
+	\begin{aligned}
+		\gL&=\|\rmT(\rmY-\rmM\rmH)\|_F\\
+		&=\|\rmT\rmY-\rmT\rmM\rmH\|_F\\
+		&=\|\rmY^{\textrm{train}}-\rmT\rmM\rmH\|_F,
+	\end{aligned}
+\end{equation}
+where $\rmY\in\{0,1\}^{n\times c}$ is the set of all node labels, $\rmH=f_W(\rmX)$ and $\rmT\in\{0,1\}^{m\times n}$ is the mask of training set with the size $m$.
+Note that although $\rmY$ in Equation~\ref{equ:square} involves valid or test set labels, it does not lead to label leakage as these labels are masked by $\rmT$ and are not involved in the computation of $\gL$ as shown in the last line of Equation~\ref{equ:square}.
+
 %Then we have
 \begin{lemma}
 	\label{prop:loss_bound}
-	Suppose $H$ has no missing frequency components over all channels and frequency profiles, i.e. $U_i^{\top}H_j\neq 0$, and $\|H_j\|_2\leq\eta$ for all $i\in[n],j\in[c]$, then
+	Given $\gL=\|\rmT(\rmY-\rmM\rmH)\|_F$, suppose $\rmH$ has no missing frequency components over all channels and frequency profiles, i.e. $\vu_i^{\top}\vh_j\neq 0$, and $\|\vh_j\|_2\leq\eta$ for all $i\in[n],j\in[c]$, then
 	\begin{equation}
 		\label{equ:bound}
 		\begin{aligned}
-			\gL\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\vt\right\|_2,
+			\gL\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}\vy_i}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2,
 		\end{aligned}
 	\end{equation}
-	where $\rmM=U\mathrm{diag}(\vt)U^{\top}$.
+	where $\rmM=\rmU\mathrm{diag}(\vt)\rmU^{\top}$.
 \end{lemma}
 We prove Lemma~\ref{prop:loss_bound} in Appendix~\ref{sec:deriviation}.
 As $H=f_W(X)$ and $\rmM=U\mathrm{diag}(\vt)U^{\top}$, Lemma~\ref{prop:loss_bound} indicates the upper bound of $\gL$ is controlled by both $f_{\rmM}^{\mathrm{col}}$ and $f_W^{\mathrm{row}}$.
@@ -390,17 +409,18 @@ Benefit from relaxing the orthogonality requirement, we can make the highest rep
 
 \begin{equation}
 	\begin{aligned}
-		\gL&=\left\|T\left(Y^*-\rmM H\right)\right\|_F\\
-		&\leq\left\|T\right\|_F\left\|Y^*-\rmM H\right\|_F\\
-		&=\sqrt{m}\left\|UU^{\top}Y^*-U\mathrm{diag}\left(\vt\right)U^{\top}H\right\|_F\\
-		&\leq\sqrt{m}\left\|U\right\|_F\left\|U^{\top}Y^*-\mathrm{diag}\left(\vt\right)U^{\top}H\right\|_F\\
-		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{i=1}^c\left\|U^{\top}Y^*_i-\mathrm{diag}\left(\vt\right)U^{\top}H_i\right\|^2_2}\\
-		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|U^{\top}Y^*_i-\mathrm{diag}\left(U^{\top}H_i\right)\vt\right\|_2\\
-		&=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\mathrm{diag}\left(U^{\top}H_i\right)\left(\mathrm{diag}^{-1}\left(U^{\top}H_i\right)U^{\top}Y^*_i-\vt\right)\right\|_2\\
-		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|U^{\top}H_i\right\|_2\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\vt\right\|_2\\
-		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|U^{\top}\right\|_F\left\|H_i\right\|_2\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\vt\right\|_2\\
-		&=\sqrt{m}n\sum_{i=1}^c\left\|H_i\right\|_2\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\vt\right\|_2\\
-		&\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\left(U^{\top}H_i\right)^{-1}\odot\left(U^{\top}Y^*_i\right)-\vt\right\|_2
+		\gL&=\left\|\rmT\left(\rmY-\rmM\rmH\right)\right\|_F\\
+		&\leq\left\|\rmT\right\|_F\left\|\rmY-\rmM\rmH\right\|_F\\
+		&=\sqrt{m}\left\|\rmU\rmU^{\top}\rmY-\rmU\mathrm{diag}\left(\vt\right)\rmU^{\top}\rmH\right\|_F\\
+		&\leq\sqrt{m}\left\|\rmU\right\|_F\left\|\rmU^{\top}\rmY-\mathrm{diag}\left(\vt\right)\rmU^{\top}\rmH\right\|_F\\
+		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{i=1}^c\left\|\rmU^{\top}\vy_i-\mathrm{diag}\left(\vt\right)\rmU^{\top}\vh_i\right\|^2_2}\\
+		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vy_i-\mathrm{diag}\left(\rmU^{\top}\vh_i\right)\vt\right\|_2\\
+		&=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\mathrm{diag}\left(\rmU^{\top}\vh_i\right)\left(\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right)\right\|_2\\
+		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
+		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\right\|_F\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
+		&=\sqrt{m}n\sum_{i=1}^c\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
+		&\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
+		&=\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}\vy_i}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2
 	\end{aligned}
 \end{equation}
 
