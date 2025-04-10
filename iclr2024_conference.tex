@@ -11,6 +11,12 @@
 \usepackage{paralist,tabularx}
 \usepackage{graphicx}
 
+% For theorems and such
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
 
 \def\vtheta{{\bm\theta}}
 \def\valpha{{\bm\alpha}}
@@ -211,21 +217,25 @@ For the standard semi-supervised node classification, it corresponds to
 		&=\|\rmY^{\textrm{train}}-\rmT\rmM\rmH\|_F,
 	\end{aligned}
 \end{equation}
-where $\rmY\in\{0,1\}^{n\times c}$ is the set of all node labels, $\rmH=f_W(\rmX)$ and $\rmT\in\{0,1\}^{m\times n}$ is the mask of training set with the size $m$.
-Note that although $\rmY$ in Equation~\ref{equ:square} involves valid or test set labels, it does not lead to label leakage as these labels are masked by $\rmT$ and are not involved in the computation of $\gL$ as shown in the last line of Equation~\ref{equ:square}.
-
-%Then we have
+where $\rmY\in\{0,1\}^{n\times c}$ is one-hot encoding node labels with the number of classes $c$, $\rmH=f_W(\rmX)$ and $\rmT\in\{0,1\}^{m\times n}$ is the mask of training set with the size $m$.~\footnote{Note that although $\rmY$ in Equation~\ref{equ:square} involves valid or test set labels, it does not lead to label leakage as these labels are masked by $\rmT$ and do not affect $\gL$.}
+We use $\rmY^*$ to denote valid or test set labels, then $\rmY=[\rmY^{\textrm{train}}\|\rmY^*]$.
 \begin{lemma}
 	\label{prop:loss_bound}
-	Given $\gL=\|\rmT(\rmY-\rmM\rmH)\|_F$, suppose $\rmH$ has no missing frequency components over all channels and frequency profiles, i.e. $\vu_i^{\top}\vh_j\neq 0$, and $\|\vh_j\|_2\leq\eta$ for all $i\in[n],j\in[c]$, then
+	Given $\gL=\|\rmT(\rmY-\rmM\rmH)\|_F$, suppose $\rmH$ has no missing frequency components over all channels and frequency profiles, i.e. $\vu_i^{\top}\vh_j\neq 0$, and $\|\vh_j\|_2\leq\eta$ for all $i\in[n],j\in[c]$, then:
 	\begin{equation}
 		\label{equ:bound}
 		\begin{aligned}
-			\gL\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}\vy_i}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2,
+			\gL\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2,
 		\end{aligned}
 	\end{equation}
 	where $\rmM=\rmU\mathrm{diag}(\vt)\rmU^{\top}$.
 \end{lemma}
+Due to semi-supervised settings, the derived upper bound of $\gL$ in Equation~\ref{equ:bound} indicates a connection with valid or test set labels $\rmY^*$, which makes it inconsistent with a practical scenario.
+%However, it provides valuable insights by showing that no matter the assignments of $\rmY^*$, an expressive filter $\vt$ can always better approximate $\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)$ than an inexpressive filter, thus an expressive filter achieves a lower upper bound.
+However, it provides valuable insights by showing that no matter the assignments of $\rmY^*$, an expressive filter $\vt$ can always achieve a lower upper bound than an inexpressive filter by approximating $\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)$ with smaller errors.
+
+
+
 We prove Lemma~\ref{prop:loss_bound} in Appendix~\ref{sec:deriviation}.
 As $H=f_W(X)$ and $\rmM=U\mathrm{diag}(\vt)U^{\top}$, Lemma~\ref{prop:loss_bound} indicates the upper bound of $\gL$ is controlled by both $f_{\rmM}^{\mathrm{col}}$ and $f_W^{\mathrm{row}}$.
 This is consistent with our empirical understanding that the predictions of nodes should consider both the node features and topology information.
@@ -406,23 +416,25 @@ Benefit from relaxing the orthogonality requirement, we can make the highest rep
 %	\end{aligned}
 %\end{equation}
 
-
-\begin{equation}
-	\begin{aligned}
-		\gL&=\left\|\rmT\left(\rmY-\rmM\rmH\right)\right\|_F\\
-		&\leq\left\|\rmT\right\|_F\left\|\rmY-\rmM\rmH\right\|_F\\
-		&=\sqrt{m}\left\|\rmU\rmU^{\top}\rmY-\rmU\mathrm{diag}\left(\vt\right)\rmU^{\top}\rmH\right\|_F\\
-		&\leq\sqrt{m}\left\|\rmU\right\|_F\left\|\rmU^{\top}\rmY-\mathrm{diag}\left(\vt\right)\rmU^{\top}\rmH\right\|_F\\
-		&=\sqrt{m}\sqrt{n}\sqrt{\sum_{i=1}^c\left\|\rmU^{\top}\vy_i-\mathrm{diag}\left(\vt\right)\rmU^{\top}\vh_i\right\|^2_2}\\
-		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vy_i-\mathrm{diag}\left(\rmU^{\top}\vh_i\right)\vt\right\|_2\\
-		&=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\mathrm{diag}\left(\rmU^{\top}\vh_i\right)\left(\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right)\right\|_2\\
-		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
-		&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\right\|_F\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
-		&=\sqrt{m}n\sum_{i=1}^c\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
-		&\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
-		&=\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}\vy_i}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2
-	\end{aligned}
-\end{equation}
+\begin{proof}
+	\begin{equation}
+		\begin{aligned}
+			\gL&=\left\|\rmT\left(\rmY-\rmM\rmH\right)\right\|_F\\
+			&\leq\left\|\rmT\right\|_F\left\|\rmY-\rmM\rmH\right\|_F\\
+			&=\sqrt{m}\left\|\rmU\rmU^{\top}\rmY-\rmU\mathrm{diag}\left(\vt\right)\rmU^{\top}\rmH\right\|_F\\
+			&\leq\sqrt{m}\left\|\rmU\right\|_F\left\|\rmU^{\top}\rmY-\mathrm{diag}\left(\vt\right)\rmU^{\top}\rmH\right\|_F\\
+			&=\sqrt{m}\sqrt{n}\sqrt{\sum_{i=1}^c\left\|\rmU^{\top}\vy_i-\mathrm{diag}\left(\vt\right)\rmU^{\top}\vh_i\right\|^2_2}\\
+			&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vy_i-\mathrm{diag}\left(\rmU^{\top}\vh_i\right)\vt\right\|_2\\
+			&=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\mathrm{diag}\left(\rmU^{\top}\vh_i\right)\left(\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right)\right\|_2\\
+			&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
+			&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\right\|_F\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
+			&=\sqrt{m}n\sum_{i=1}^c\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
+			&\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
+			&=\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}\vy_i}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2\\
+			&=\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2
+		\end{aligned}
+	\end{equation}
+\end{proof}
 
 %\section{Proof of Proposition~\ref{prop:gc_fitting}}
 %\label{sec:gc_fitting}
