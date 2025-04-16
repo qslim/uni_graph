@@ -35,7 +35,8 @@
 \newtheorem{definition}{\textbf{Definition}} %[section]
 
 
-\title{A Unified View on the Representational Power of Graph Convolution, Message-passing NNs and Graph Transformers}
+% \title{A Unified View on the Representational Power of Graph Convolution, Message-passing NNs and Graph Transformers from the Spectral Perspective}
+\title{A General Point of View of Graph Convolution Via the Lens of Fitting}
 
 % Authors must not appear in the submitted version. They should be hidden
 % as long as the \iclrfinalcopy macro remains commented out below.
@@ -139,6 +140,18 @@
 			%		&=\sigma(\rmM\sigma(XW)).
 		\end{aligned}
 	\end{equation}
+	\begin{equation}
+		\label{equ:uni_grl}
+		\begin{aligned}
+			Z&=\Phi^{\mathrm{prop.}}\circ\Psi^{\mathrm{pred.}}(X).
+		\end{aligned}
+	\end{equation}
+	\begin{equation}
+		\label{equ:square}
+		\begin{aligned}
+			\arg\min_{\Phi,\Psi}\gL&=\|\rmY^{\textrm{train}}-\rmT\Phi^{\mathrm{prop.}}(\gG)\Psi^{\mathrm{pred.}}(\rmX)\|^2_F
+		\end{aligned}
+	\end{equation}
 	Here, regarding to specific graph learning modesl, $f_W^{\mathrm{row}}(\gO)=\sigma(\gO W)$ can be a single- or multi-layer percetron applied on each row of $X$ by right multiplying $W$, where $W\in\sR^{d\times d^{\prime}}$ is the learnable weights.
 	$f_{\rmM}^{\mathrm{col}}(\gO)=\sigma(\rmM\gO)$ is applied on each column of $X$ by left multiplying $\rmM$, where $\rmM\in\sR^{n\times n}$ is the matrix representation of $G$.
 	$\rmM$ can also be learnable.
@@ -203,41 +216,56 @@
 	In this work, we fill this part by analyzing their representational power.
 	
 	\section{Representational Power Analysis}
-	%\subsection{Analyzing the representational power, i.e. the ability to fit the training data}
 	
-	%The expressive power of spectral graph convolution can be well quantified.
+	=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 	
 	Following the setting in \citet{xu2021optimization} and \citet{JacobiConv}, we study the representational power, i.e. fitting ability, of the linear case of Equation~\ref{equ:uni_grl} trained with the squared loss.
 	For the standard semi-supervised node classification, it corresponds to
 	\begin{equation}
 		\label{equ:square}
 		\begin{aligned}
-			\gL&=\|\rmT(\rmY-\rmM\rmH)\|_F=\|\rmT\rmY-\rmT\rmM\rmH\|_F=\|\rmY^{\textrm{train}}-\rmT\rmM\rmH\|_F,
+			\gL=\|\rmT(\rmY-\rmM\rmH)\|^2_F=\|\rmY^{\textrm{train}}-\rmT\rmM\rmH\|^2_F,
 		\end{aligned}
 	\end{equation}
 	where $\rmY\in\{0,1\}^{n\times c}$ is one-hot encoding node labels with the number of classes $c$, $\rmH=f_W(\rmX)$ and $\rmT\in\{0,1\}^{m\times n}$ is the mask of training set with the size $m$.
-	% ~\footnote{Note that although $\rmY$ in Equation~\ref{equ:square} involves valid or test set labels, it does not lead to label leakage as these labels are masked by $\rmT$ and do not affect $\gL$.}
 	
-	As test set node labels are unavailable, we use the variable $\rmY^*$ to denote test set node labels with the domain all possible test set node labels.
-	% then $\rmY=[\rmY^{\textrm{train}}\|\rmY^*]$.
 	\begin{lemma}
 		\label{prop:loss_bound}
-		Suppose $\|\vh_i\|_2\leq\eta$ for all $i\in[c]$, and $\vh_i$ has no missing frequency components on all frequency profiles (i.e., $\vu_j^{\top}\vh_i\neq 0$ for all $j\in[n]$). For any assignment of $\rmY^*$, the loss $\gL$ satisfies:
+		Suppose the approximator $\vt$ can approximate any filter $\valpha\in\sR^n$ with the error bound $\epsilon$, $\|\vh_i\|_2\leq\eta$ for all $i\in[c]$, and $\vh_i$ has no missing frequency components on all frequency profiles (i.e., $\vu_j^{\top}\vh_i\neq 0$ for all $j\in[n]$). The loss $\gL$ satisfies:
 		\begin{equation}
 			\label{equ:bound}
 			\begin{aligned}
-				\gL(\rmY^*)\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2,
+				\gL\leq mcn^2\eta^2\epsilon^2
 			\end{aligned}
 		\end{equation}
-		where $\rmM=\rmU\mathrm{diag}(\vt)\rmU^{\top}$.
+		with proper approximator $\vt$.
 	\end{lemma}
 	
-	% Due to semi-supervised settings, the derived upper bound of $\gL$ in Equation~\ref{equ:bound} indicates a connection with valid or test set labels $\rmY^*$, which makes it inconsistent with a practical scenario.
-	%However, it provides valuable insights by showing that no matter the assignments of $\rmY^*$, an expressive filter $\vt$ can always better approximate $\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)$ than an inexpressive filter, thus an expressive filter achieves a lower upper bound.
-	Equation~\ref{equ:bound} shows that for any $\rmY^*$, an expressive filter $\vt$ can always achieve a lower upper bound of $\gL(\rmY^*)$ than an inexpressive filter by approximating $\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)$ with smaller errors.
 	
+	\begin{proposition}
+		\label{prop:appro}
+		Given $\rmU\in\sR^{n\times k}$ and $\vu\in\sR^n$ with $\mathrm{rank}((\rmU,\vu))>\mathrm{rank}(\rmU)=k$, for any $\vh,\vy\in\sR^n$ with $\vh^{\top}(\rmU,\vu)\neq\mathbf 0$, if $\min_{\valpha}\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh\|_2>0$, we have:
+		\begin{equation}
+			\label{equ:appro1}
+			\begin{aligned}
+				\min_{\valpha,\alpha}\|\vy-(\rmU,\vu)\mathrm{diag}((\valpha,\alpha))(\rmU,\vu)^{\top}\vh\|_2<\min_{\valpha}\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh\|_2.
+			\end{aligned}
+		\end{equation}
+		Meanwhile, if $k=n$, we have:
+		\begin{equation}
+			\label{equ:appro2}
+			\begin{aligned}
+				\min_{\valpha}\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh\|_2=0.
+			\end{aligned}
+		\end{equation}    
+	\end{proposition}
+	Insight:\\
+	$\rmU$ is not necessary to be orthogonal;\\
+	A larger $k$ has lower fitting error;\\
+	For any $\vy$, the optimal filter is xx. But only partial entries (corresponding to training set) of $\vy$ are available, thus we cannot compute the optimal filter directly.\\
+	Transformation universality in compare with filter universality
 	
-	--------------------------------------
+	=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 	
 	We prove Lemma~\ref{prop:loss_bound} in Appendix~\ref{sec:deriviation}.
 	As $H=f_W(X)$ and $\rmM=U\mathrm{diag}(\vt)U^{\top}$, Lemma~\ref{prop:loss_bound} indicates the upper bound of $\gL$ is controlled by both $f_{\rmM}^{\mathrm{col}}$ and $f_W^{\mathrm{row}}$.
@@ -402,39 +430,53 @@
 	\section{Proof of Lemma~\ref{prop:loss_bound}}
 	\label{sec:deriviation}
 	
-	%\begin{equation}
-	%	\begin{aligned}
-		%		\gL
-		%%		&=\left\|\vy^{\mathrm{train}}-T\rmM\vh\right\|_2\\
-		%%		&=\left\|T\vy^*-T\rmM\vh\right\|_2\\
-		%		&=\left\|T\left(\vy^*-\rmM\vh\right)\right\|_2\\
-		%		&\leq\left\|T\right\|_F\left\|\vy^*-\rmM\vh\right\|_2\\
-		%		&=\sqrt{m}\left\|UU^{\top}\vy^*-U\mathrm{diag}\left(\vt\right)U^{\top}\vh\right\|_2\\
-		%		&\leq\sqrt{m}\left\|U\right\|_F\left\|U^{\top}\vy^*-\mathrm{diag}\left(\vt\right)U^{\top}\vh\right\|_2\\
-		%		&=\sqrt{m}\sqrt{n}\left\|U^{\top}\vy^*-\mathrm{diag}\left(U^{\top}\vh\right)\vt\right\|_2\\
-		%		&=\sqrt{m}\sqrt{n}\left\|\mathrm{diag}\left(U^{\top}\vh\right)\left(\mathrm{diag}^{-1}\left(U^{\top}\vh\right)U^{\top}\vy^*-\vt\right)\right\|_2\\
-		%		&\leq\sqrt{m}\sqrt{n}\left\|U^{\top}\vh\right\|_2\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2\\
-		%		&\leq\sqrt{m}n\left\|\vh\right\|_2\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2\\
-		%		&\leq\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2
-		%	\end{aligned}
-	%\end{equation}
-	
 	\begin{proof}
+		% We use the variable $\rmY^*\in\sR^{n\times c}$ to denote all node labels with the domain being all possible assignments of node labels.
+		% With proper approximator $\vt^{(i)}$/There always exists proper approximator $\vt^{(i)}$ such that,
+		We use $\rmY^*\in\sR^{n\times c}$ to denote all node labels with $\rmY^{\textrm{train}}=\rmT\rmY^*$.
+		For any $\rmY^*$, with proper approximator $\vt^{(i)}$/there always exists proper approximator $\vt^{(i)}$ such that,
 		\begin{equation}
 			\begin{aligned}
-				\gL&=\left\|\rmT\left(\rmY-\rmM\rmH\right)\right\|_F\\
-				&\leq\left\|\rmT\right\|_F\left\|\rmY-\rmM\rmH\right\|_F\\
-				&=\sqrt{m}\left\|\rmU\rmU^{\top}\rmY-\rmU\mathrm{diag}\left(\vt\right)\rmU^{\top}\rmH\right\|_F\\
-				&\leq\sqrt{m}\left\|\rmU\right\|_F\left\|\rmU^{\top}\rmY-\mathrm{diag}\left(\vt\right)\rmU^{\top}\rmH\right\|_F\\
-				&=\sqrt{m}\sqrt{n}\sqrt{\sum_{i=1}^c\left\|\rmU^{\top}\vy_i-\mathrm{diag}\left(\vt\right)\rmU^{\top}\vh_i\right\|^2_2}\\
-				&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vy_i-\mathrm{diag}\left(\rmU^{\top}\vh_i\right)\vt\right\|_2\\
-				&=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\mathrm{diag}\left(\rmU^{\top}\vh_i\right)\left(\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right)\right\|_2\\
-				&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
-				&\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\right\|_F\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
-				&=\sqrt{m}n\sum_{i=1}^c\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
-				&\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy_i-\vt\right\|_2\\
-				&=\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}\vy_i}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2\\
-				&=\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2
+				\gL&=\left\|\rmY^{\textrm{train}}-\rmT\left[\rmM^{(i)}\vh_i\right]^{(c)}\right\|_F^2\\
+				&=\left\|\rmT\left(\rmY^*-\left[\rmM^{(i)}\vh_i\right]^{(c)}\right)\right\|_F^2\\
+				&\leq\left\|\rmT\right\|_F^2\left\|\rmY^*-\left[\rmM^{(i)}\vh_i\right]^{(c)}\right\|_F^2\\
+				&=m\left\|\left[\vy^*_i\right]^{(c)}-\left[\rmM^{(i)}\vh_i\right]^{(c)}\right\|_F^2\\
+				&=m\sum_{i=1}^c\left\|\vy^*_i-\rmM^{(i)}\vh_i\right\|_2^2
+			\end{aligned}
+		\end{equation}
+		For each $i\in[c]$,
+		%    \begin{equation}
+			%        \begin{aligned}
+				%            \left\|\vy^*_i-\rmM^{(i)}\vh_i\right\|^2_2&=\left\|\rmU^{(i)}\rmU^{(i)\top}\vy^*_i-\rmU^{(i)}\mathrm{diag}\left(\vt^{(i)}\right)\rmU^{(i)\top}\vh_i\right\|_2^2\\
+				%            &\leq\left\|\rmU^{(i)}\right\|_F^2\left\|\rmU^{(i)\top}\vy^*_i-\mathrm{diag}\left(\vt^{(i)}\right)\rmU^{(i)\top}\vh_i\right\|_2^2\\
+				%            &=n\left\|\rmU^{(i)\top}\vy^*_i-\mathrm{diag}\left(\rmU^{(i)\top}\vh_i\right)\vt^{(i)}\right\|_2^2\\
+				%            &=n\left\|\mathrm{diag}\left(\rmU^{(i)\top}\vh_i\right)\left(\mathrm{diag}^{-1}\left(\rmU^{(i)\top}\vh_i\right)\rmU^{(i)\top}\vy^*_i-\vt^{(i)}\right)\right\|_2^2\\
+				%            &\leq n\left\|\rmU^{(i)\top}\vh_i\right\|_2^2\left\|\mathrm{diag}^{-1}\left(\rmU^{(i)\top}\vh_i\right)\rmU^{(i)\top}\vy^*_i-\vt^{(i)}\right\|_2^2\\
+				%            &\leq n\left\|\rmU^{(i)\top}\right\|_F^2\left\|\vh_i\right\|_2^2\left\|\mathrm{diag}^{-1}\left(\rmU^{(i)\top}\vh_i\right)\rmU^{(i)\top}\vy^*_i-\vt^{(i)}\right\|_2^2\\
+				%            &\leq n^2\eta^2\left\|\mathrm{diag}^{-1}\left(\rmU^{(i)\top}\vh_i\right)\rmU^{(i)\top}\vy^*_i-\vt^{(i)}\right\|_2^2\\
+				%            &=n^2\eta^2\underbrace{\left\|\left[\frac{\vu_j^{(i)\top}\vy^*_i}{\vu_j^{(i)\top}\vh_i}\right]^{(j)\top}-\vt^{(i)}\right\|_2^2}_{\leq\epsilon^2}\\
+				%            &\leq n^2\eta^2\epsilon^2
+				% \end{aligned}
+			%    \end{equation}
+		\begin{equation}
+			\begin{aligned}
+				\left\|\vy^*-\rmM\vh\right\|^2_2&=\left\|\rmU\rmU^{\top}\vy^*-\rmU\mathrm{diag}\left(\vt\right)\rmU^{\top}\vh\right\|_2^2\\
+				&\leq\left\|\rmU\right\|_F^2\left\|\rmU^{\top}\vy^*-\mathrm{diag}\left(\vt\right)\rmU^{\top}\vh\right\|_2^2\\
+				&=n\left\|\rmU^{\top}\vy^*-\mathrm{diag}\left(\rmU^{\top}\vh\right)\vt\right\|_2^2\\
+				&=n\left\|\mathrm{diag}\left(\rmU^{\top}\vh\right)\left(\mathrm{diag}^{-1}\left(\rmU^{\top}\vh\right)\rmU^{\top}\vy^*-\vt\right)\right\|_2^2\quad\textrm{(by $\rmU_i^{\top}\vh\neq 0,i\in[n])$}\\
+				&\leq n\left\|\rmU^{\top}\vh\right\|_2^2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh\right)\rmU^{\top}\vy^*-\vt\right\|_2^2\\
+				&\leq n\left\|\rmU^{\top}\right\|_F^2\left\|\vh\right\|_2^2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh\right)\rmU^{\top}\vy^*-\vt\right\|_2^2\\
+				&=n^2\eta^2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh\right)\rmU^{\top}\vy^*-\vt\right\|_2^2\\
+				&=n^2\eta^2\left\|\left(\rmU^{\top}\vy^*\right)\oslash\left(\rmU^{\top}\vh\right)-\vt\right\|_2^2\quad\textrm{($\oslash$ is Hadamard division)}\\
+				&=n^2\eta^2\underbrace{\left\|\left[\frac{\vu_j^{\top}\vy^*}{\vu_j^{\top}\vh}\right]^{(n)}-\vt\right\|_2^2}_{\leq\epsilon^2}\\
+				&\leq n^2\eta^2\epsilon^2
+			\end{aligned}
+		\end{equation}
+		Therefore, we have:
+		\begin{equation}
+			\begin{aligned}
+				\gL&\leq m\sum_{i=1}^c n^2\eta^2\epsilon^2\\
+				&=mcn^2\eta^2\epsilon^2
 			\end{aligned}
 		\end{equation}
 	\end{proof}
@@ -463,6 +505,54 @@
 		%		&=0.
 		%	\end{aligned}
 	%\end{equation}
+	
+	
+	\section{Proof of Proposition~\ref{prop:appro}}
+	\label{sec:appro}
+	\begin{proof}
+		\textbf{Proof of Equation~\ref{equ:appro1}:}
+		
+		Let $S_k = \left\{ \rmU \mathrm{diag}(\valpha) \rmU^\top \vh \, \big| \, \valpha \in \mathbb{R}^k \right\}$ and $S_{k+1} = \left\{ [\rmU, \vu] \mathrm{diag}([\valpha, \alpha]) [\rmU, \vu]^\top \vh \, \big| \, \valpha \in \mathbb{R}^k, \alpha \in \mathbb{R} \right\}$.
+		Since $\mathrm{span}(\rmU) \subset \mathrm{span}([\rmU, \vu])$, we have \( S_k \subseteq S_{k+1} \).
+		By the projection theorem in Hilbert spaces, the minimum residual over $S_{k+1}$ satisfies:
+		\begin{equation}
+			\begin{aligned}
+				\min_{s \in S_{k+1}} \| \vy - s \|_2 \leq \min_{s \in S_k} \| \vy - s \|_2.
+			\end{aligned}
+		\end{equation}
+		To show the strict inequality, assume equality holds.
+		Then the orthogonal projection of $\vy$ onto $S_{k+1}$, denoted $\mathrm{proj}_{S_{k+1}}(\vy)$, must coincide with $\mathrm{proj}_{S_k}(\vy)$. This implies the residual $\vy - \textrm{proj}_{S_k}(\vy)$ is orthogonal to the direction added by $\vu$, i.e.,
+		\begin{equation}
+			\begin{aligned}
+				\left\langle \vy - \mathrm{proj}_{S_k}(\vy), \, \vu (\vu^\top \vh) \right\rangle = 0.
+			\end{aligned}
+		\end{equation}
+		However, since $\mathrm{rank}([\rmU, \vu]) = k+1$, $\vu$ is not in $\mathrm{span}(\rmU)$, and $\vh^\top \vu \neq 0$ (from $\vh^\top (\rmU, \vu) \neq \mathbf{0}$), the vector $\vu (\vu^\top \vh)$ is not orthogonal to $\vy - proj_{S_k}(\vy)$.
+		This contradiction forces:
+		\begin{equation}
+			\begin{aligned}
+				\min_{S_{k+1}} \| \vy - s \|_2 < \min_{S_k} \| \vy - s \|_2.
+			\end{aligned}
+		\end{equation}
+		
+		\textbf{Proof of Equation~\ref{equ:appro2}:}
+		
+		If $k = n$, $\rmU$ is an invertible $n \times n$ matrix.
+		Let $\mathbf{w} = \rmU^\top \vh$, which is non-zero due to $\vh^\top \rmU \neq \mathbf{0}$.
+		Define $\valpha = \rmU^{-1} \vy \oslash \mathbf{w}$, where $\oslash$ denotes Hadamard division. Substituting into the model:
+		\begin{equation}
+			\begin{aligned}
+				\rmU \mathrm{diag}(\valpha) \rmU^\top \vh = \rmU \mathrm{diag}\left( \frac{(\rmU^{-1} \vy)_i}{w_i} \right) \mathbf{w} = \rmU (\rmU^{-1} \vy) = \vy.
+			\end{aligned}
+		\end{equation}
+		Thus, the residual is zero:
+		\begin{equation}
+			\begin{aligned}
+				\min_{\valpha} \| \vy - \rmU \mathrm{diag}(\valpha) \rmU^\top \vh \|_2 = 0.
+			\end{aligned}
+		\end{equation}
+	\end{proof}
+	
 	
 	\section{Proof of Proposition~\ref{prop:trunc_fitting}}
 	\label{sec:trunc_fitting}
@@ -569,5 +659,152 @@
 			&\leq\sqrt{m}n\sum_{j=1}^c\left\|H_j\right\|_F\left\|\left(U^{\top}H_j\right)^{-1}\odot\left(U^{\top}Y^*_j\right)-\vlambda\right\|_F
 		\end{aligned}
 	\end{equation}
+	
+	
+	%\begin{equation}
+	%	\begin{aligned}
+		%		\gL
+		%%		&=\left\|\vy^{\mathrm{train}}-T\rmM\vh\right\|_2\\
+		%%		&=\left\|T\vy^*-T\rmM\vh\right\|_2\\
+		%		&=\left\|T\left(\vy^*-\rmM\vh\right)\right\|_2\\
+		%		&\leq\left\|T\right\|_F\left\|\vy^*-\rmM\vh\right\|_2\\
+		%		&=\sqrt{m}\left\|UU^{\top}\vy^*-U\mathrm{diag}\left(\vt\right)U^{\top}\vh\right\|_2\\
+		%		&\leq\sqrt{m}\left\|U\right\|_F\left\|U^{\top}\vy^*-\mathrm{diag}\left(\vt\right)U^{\top}\vh\right\|_2\\
+		%		&=\sqrt{m}\sqrt{n}\left\|U^{\top}\vy^*-\mathrm{diag}\left(U^{\top}\vh\right)\vt\right\|_2\\
+		%		&=\sqrt{m}\sqrt{n}\left\|\mathrm{diag}\left(U^{\top}\vh\right)\left(\mathrm{diag}^{-1}\left(U^{\top}\vh\right)U^{\top}\vy^*-\vt\right)\right\|_2\\
+		%		&\leq\sqrt{m}\sqrt{n}\left\|U^{\top}\vh\right\|_2\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2\\
+		%		&\leq\sqrt{m}n\left\|\vh\right\|_2\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2\\
+		%		&\leq\sqrt{m}n\eta\left\|\left(U^{\top}\vh\right)^{-1}\odot\left(U^{\top}\vy^*\right)-\vt\right\|_2
+		%	\end{aligned}
+	%\end{equation}
+	
+	
+	Following the setting in \citet{xu2021optimization} and \citet{JacobiConv}, we study the representational power, i.e. fitting ability, of the linear case of Equation~\ref{equ:uni_grl} trained with the squared loss.
+	For the standard semi-supervised node classification, it corresponds to
+	\begin{equation}
+		\label{equ:square}
+		\begin{aligned}
+			\gL&=\|\rmT(\rmY-\rmM\rmH)\|^2_F=\|\rmT\rmY-\rmT\rmM\rmH\|^2_F=\|\rmY^{\textrm{train}}-\rmT\rmM\rmH\|^2_F,
+		\end{aligned}
+	\end{equation}
+	where $\rmY\in\{0,1\}^{n\times c}$ is one-hot encoding node labels with the number of classes $c$, $\rmH=f_W(\rmX)$ and $\rmT\in\{0,1\}^{m\times n}$ is the mask of training set with the size $m$.
+	% As test set node labels are unavailable, we use the variable $\rmY^*$ to denote test set node labels with the domain all possible test set node labels.
+	
+	\begin{lemma}
+		\label{prop:loss_bound}
+		Suppose the approximator $\vt$ can approximate any filter $\valpha\in\sR^n$ with the error bound $\epsilon$, $\|\vh_i\|_2\leq\eta$ for all $i\in[c]$, and $\vh_i$ has no missing frequency components on all frequency profiles (i.e., $\vu_j^{\top}\vh_i\neq 0$ for all $j\in[n]$). The loss $\gL$ satisfies:
+		\begin{equation}
+			\label{equ:bound}
+			\begin{aligned}
+				\gL\leq m(cn\eta\epsilon)^2
+			\end{aligned}
+		\end{equation}
+		with proper approximator $\vt$.
+	\end{lemma}
+	
+	\begin{lemma}
+		\label{prop:loss_bound}
+		Suppose $\|\vh_i\|_2\leq\eta$ for all $i\in[c]$, and $\vh_i$ has no missing frequency components on all frequency profiles (i.e., $\vu_j^{\top}\vh_i\neq 0$ for all $j\in[n]$). For any assignment of $\rmY^*$, the loss $\gL$ satisfies:
+		\begin{equation}
+			\label{equ:bound}
+			\begin{aligned}
+				\gL(\rmY^*)\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2,
+			\end{aligned}
+		\end{equation}
+		where $\rmM=\rmU\mathrm{diag}(\vt)\rmU^{\top}$.
+	\end{lemma}
+	Equation~\ref{equ:bound} shows that for any $\rmY^*$, an expressive filter $\vt$ can always achieve a lower upper bound of $\gL(\rmY^*)$ than an inexpressive filter by approximating $\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)$ with smaller errors.
+	
+	
+	
+	%    \begin{equation}
+		%        \begin{aligned}
+			%            \|\rmY^{\textrm{train}}-\rmT\rmM\rmH\|_F&=\left\|\rmT\left(\rmY^*-\rmM\rmH\right)\right\|_F\\
+			%            &\leq\left\|\rmT\right\|_F\left\|\rmY^*-\rmM\rmH\right\|_F\\
+			%            &=\sqrt{m}\left\|\rmU\rmU^{\top}\rmY^*-\rmU\mathrm{diag}\left(\vt\right)\rmU^{\top}\rmH\right\|_F\\
+			%            &\leq\sqrt{m}\left\|\rmU\right\|_F\left\|\rmU^{\top}\rmY^*-\mathrm{diag}\left(\vt\right)\rmU^{\top}\rmH\right\|_F\\
+			%            &=\sqrt{m}\sqrt{n}\sqrt{\sum_{i=1}^c\left\|\rmU^{\top}\vy^*_i-\mathrm{diag}\left(\vt\right)\rmU^{\top}\vh_i\right\|^2_2}\\
+			%            &\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vy^*_i-\mathrm{diag}\left(\vt\right)\rmU^{\top}\vh_i\right\|_2\\
+			%            &=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vy^*_i-\mathrm{diag}\left(\rmU^{\top}\vh_i\right)\vt\right\|_2\\
+			%            &=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\mathrm{diag}\left(\rmU^{\top}\vh_i\right)\left(\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy^*_i-\vt\right)\right\|_2\\
+			%            &\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy^*_i-\vt\right\|_2\\
+			%            &\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{\top}\right\|_F\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy^*_i-\vt\right\|_2\\
+			%            &=\sqrt{m}n\sum_{i=1}^c\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy^*_i-\vt\right\|_2\\
+			%            &\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{diag}^{-1}\left(\rmU^{\top}\vh_i\right)\rmU^{\top}\vy^*_i-\vt\right\|_2\\
+			%            &=\sqrt{m}n\eta\sum_{i=1}^c\underbrace{\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}\vy^*_i}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2}_{\leq\epsilon}\\
+			%            % &=\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{vec}_j\left(\frac{\vu_j^{\top}[\vy^{\textrm{train}}_i\|\vy^*_i]}{\vu_j^{\top}\vh_i}\right)-\vt\right\|_2\\
+			%            &\leq\sqrt{m}cn\eta\epsilon
+			% \end{aligned}
+		%    \end{equation}
+	
+	%    \begin{equation}
+		%        \begin{aligned}
+			%            \left\|\rmY^{\textrm{train}}-\rmT\left[\rmM^{(i)}\vh_i\right]^{(c)}\right\|_F&=\left\|\rmT\left(\rmY^*-\left[\rmM^{(i)}\vh_i\right]^{(c)}\right)\right\|_F\\
+			%            &\leq\left\|\rmT\right\|_F\left\|\rmY^*-\left[\rmM^{(i)}\vh_i\right]^{(c)}\right\|_F\\
+			%            &=\sqrt{m}\left\|\left[\vy^*_i\right]^{(c)}-\left[\rmM^{(i)}\vh_i\right]^{(c)}\right\|_F\\
+			%            &=\sqrt{m}\sqrt{\sum_{i=1}^c\left\|\vy^*_i-\rmM^{(i)}\vh_i\right\|^2_2}\\
+			%            &\leq\sqrt{m}\sum_{i=1}^c\left\|\vy^*_i-\rmM^{(i)}\vh_i\right\|_2\\
+			%            &=\sqrt{m}\sum_{i=1}^c\left\|\rmU^{(i)}\rmU^{(i)\top}\vy^*_i-\rmU^{(i)}\mathrm{diag}\left(\vt^{(i)}\right)\rmU^{(i)\top}\vh_i\right\|_2\\
+			%            &\leq\sqrt{m}\sum_{i=1}^c\left\|\rmU^{(i)}\right\|_F\left\|\rmU^{(i)\top}\vy^*_i-\mathrm{diag}\left(\vt^{(i)}\right)\rmU^{(i)\top}\vh_i\right\|_2\\
+			%            &=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{(i)\top}\vy^*_i-\mathrm{diag}\left(\vt^{(i)}\right)\rmU^{(i)\top}\vh_i\right\|_2\\
+			%            &=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{(i)\top}\vy^*_i-\mathrm{diag}\left(\rmU^{(i)\top}\vh_i\right)\vt^{(i)}\right\|_2\\
+			%            &=\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\mathrm{diag}\left(\rmU^{(i)\top}\vh_i\right)\left(\mathrm{diag}^{-1}\left(\rmU^{(i)\top}\vh_i\right)\rmU^{(i)\top}\vy^*_i-\vt^{(i)}\right)\right\|_2\\
+			%            &\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{(i)\top}\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{(i)\top}\vh_i\right)\rmU^{(i)\top}\vy^*_i-\vt^{(i)}\right\|_2\\
+			%            &\leq\sqrt{m}\sqrt{n}\sum_{i=1}^c\left\|\rmU^{(i)\top}\right\|_F\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{(i)\top}\vh_i\right)\rmU^{(i)\top}\vy^*_i-\vt^{(i)}\right\|_2\\
+			%            &=\sqrt{m}n\sum_{i=1}^c\left\|\vh_i\right\|_2\left\|\mathrm{diag}^{-1}\left(\rmU^{(i)\top}\vh_i\right)\rmU^{(i)\top}\vy^*_i-\vt^{(i)}\right\|_2\\
+			%            &\leq\sqrt{m}n\eta\sum_{i=1}^c\left\|\mathrm{diag}^{-1}\left(\rmU^{(i)\top}\vh_i\right)\rmU^{(i)\top}\vy^*_i-\vt^{(i)}\right\|_2\\
+			%            &=\sqrt{m}n\eta\sum_{i=1}^c\underbrace{\left\|\left[\frac{\vu_j^{(i)\top}\vy^*_i}{\vu_j^{(i)\top}\vh_i}\right]^{(j)\top}-\vt^{(i)}\right\|_2}_{\leq\epsilon}\\
+			%            &\leq\sqrt{m}cn\eta\epsilon
+			% \end{aligned}
+		%    \end{equation}
+	%    Therefore, we have:
+	%    \begin{equation}
+		%        \begin{aligned}
+			%            \gL&=\left\|\rmY^{\textrm{train}}-\rmT\left[\rmM^{(i)}\vh_i\right]^{(c)}\right\|^2_F\\
+			%            &\leq m(cn\eta\epsilon)^2
+			% \end{aligned}
+		%    \end{equation}
+	
+	
+	
+	\begin{equation}
+		\label{equ:trans_bound1}
+		\begin{aligned}
+			&\min_{\valpha}\left\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh\right\|_2=\left\|\rmF^{(k)}\right\|_2,s.t.\\
+			&\rmF^{(0)}=\vy\\
+			&\rmF^{(i)}=\rmF^{(i-1)}-(\rmF^{(i-1)\top}\vu_i)\vu_i
+		\end{aligned}
+	\end{equation}
+	
+	\begin{proof}
+		\begin{equation}
+			\label{equ:trans_bound2}
+			\begin{aligned}
+				\min_{\valpha,\alpha}\|\vy-(\rmU,\vu)\mathrm{diag}((\valpha,\alpha))(\rmU,\vu)^{\top}\vh\|_2&=\min_{\valpha,\alpha}\left\|\vy-(\rmU,\vu)
+				\begin{pmatrix}
+					\mathrm{diag}(\valpha) \\
+					& \alpha \\
+				\end{pmatrix}
+				\begin{pmatrix}
+					\rmU^{\top} \\
+					\vu^{\top} \\
+				\end{pmatrix}\vh\right\|_2\\
+				&=\min_{\valpha,\alpha}\|\vy-(\rmU\mathrm{diag}(\valpha)\rmU^{\top}+\alpha\vu\vu^{\top})\vh\|_2\\
+				&=\min_{\valpha,\alpha}\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh-\alpha\vu\vu^{\top}\vh\|_2\\
+				&\leq\min_{\valpha}\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh-0\cdot\vu\vu^{\top}\vh\|_2\\
+				&=\min_{\valpha}\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh\|_2\\
+			\end{aligned}
+		\end{equation}
+		If $\vy^{\top}\vu\neq 0$, when $\alpha=\frac{\vy^{\top}\vu}{\vh^{\top}\vu}$,
+		\begin{equation}
+			\label{equ:trans_bound3}
+			\begin{aligned}
+				\min_{\valpha,\alpha}\left\|\vy-(\rmU,\vu)\mathrm{diag}((\valpha,\alpha))(\rmU,\vu)^{\top}\vh\right\|_2&\leq\min_{\valpha}\left\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh-\frac{\vy^{\top}\vu}{\vh^{\top}\vu}\vu\vu^{\top}\vh\right\|_2\\
+				&=\min_{\valpha}\left\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh-(\vy^{\top}\vu)\vu\right\|_2\\
+				&=\min_{\valpha}\sqrt{\left\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh\right\|_2^2-\left\|(\vy^{\top}\vu)\vu\right\|_2^2}\\
+				&<\min_{\valpha}\left\|\vy-\rmU\mathrm{diag}(\valpha)\rmU^{\top}\vh\right\|_2\quad\textrm{by $\|(\vy^{\top}\vu)\vu\|_2>0$}\\
+			\end{aligned}
+		\end{equation}
+	\end{proof}
 	
 \end{document}
